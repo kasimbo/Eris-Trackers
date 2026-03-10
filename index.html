@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Eris Trackers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f5f0eb; font-family: 'Inter', sans-serif; color: #1a1a1a; }
+    input, select, textarea { font-family: 'Inter', sans-serif; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+    @keyframes fadeUp    { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes scaleIn   { from { opacity:0; transform:scale(.95); }       to { opacity:1; transform:scale(1); } }
+    @keyframes spin      { to { transform: rotate(360deg); } }
+    @keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+    .fu  { animation: fadeUp    .4s ease forwards; }
+    .sci { animation: scaleIn   .3s ease forwards; }
+    .sd  { animation: slideDown .25s ease forwards; }
+    .btn-black {
+      background: #1a1a1a; color: #fff; border: none;
+      padding: 13px 28px; border-radius: 10px; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px;
+      transition: background .2s, transform .15s;
+    }
+    .btn-black:hover { background: #333; transform: translateY(-1px); }
+    .btn-outline {
+      background: transparent; color: #1a1a1a; border: 1.5px solid #d0cbc4;
+      padding: 11px 20px; border-radius: 10px; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-weight: 500; font-size: 14px;
+      transition: all .2s;
+    }
+    .btn-outline:hover { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    .inp {
+      width: 100%; background: #fff; border: 1.5px solid #e0dbd4;
+      border-radius: 10px; padding: 12px 16px; font-size: 14px;
+      color: #1a1a1a; outline: none; transition: border-color .2s;
+    }
+    .inp:focus { border-color: #1a1a1a; }
+    .inp::placeholder { color: #aaa; }
+    .card {
+      background: #fff; border-radius: 18px;
+      box-shadow: 0 2px 16px rgba(0,0,0,.07); padding: 28px;
+    }
+    .action-card { cursor: pointer; transition: transform .2s, box-shadow .2s; }
+    .action-card:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,.13); }
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.4);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 200; padding: 20px;
+    }
+    .modal {
+      background: #fff; border-radius: 20px; padding: 32px;
+      width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+    }
+    .notif {
+      position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+      background: #1a1a1a; color: #fff; padding: 12px 24px; border-radius: 40px;
+      font-size: 13px; font-weight: 500; z-index: 999; white-space: nowrap;
+      animation: fadeUp .3s ease;
+    }
+    .notif.ok  { background: #276749; }
+    .notif.err { background: #e53e3e; }
+    .dd-item {
+      padding: 13px 18px; display: flex; align-items: center; gap: 12px;
+      cursor: pointer; font-size: 14px; border-bottom: 1px solid #f5f0eb;
+      transition: background .15s; background: #fff;
+    }
+    .dd-item:hover { background: #f9f6f2; }
+    .dd-item:last-child { border-bottom: none; }
+    .copy-btn {
+      background: #1a1a1a; color: #fff; border: none; border-radius: 8px;
+      padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+      font-family: 'Inter', sans-serif; white-space: nowrap; transition: background .2s;
+      flex-shrink: 0;
+    }
+    .copy-btn:hover { background: #333; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    /* ── GLOBAL PACKAGE STORE ──
+       Sender-generated tracking numbers are added here.
+       Both the receiver modal and main track box search this store.
+    ── */
+    const packageStore = {
+      "ET48291037": { status:"transit",   item:"Samsung TV",       from:"Lusaka", to:"Kitwe",       sender:"John Banda" },
+      "ET83746201": { status:"warehouse", item:"Clothing Bundle",  from:"Ndola",  to:"Lusaka",      sender:"Mary Phiri" },
+      "ET19284756": { status:"city",      item:"Medical Supplies", from:"Lusaka", to:"Livingstone", sender:"PharmaCare Ltd" },
+      "ET56473829": { status:"delivered", item:"Laptop",           from:"Lusaka", to:"Chipata",     sender:"TechHub Zambia" },
+      "ET30021984": { status:"pickup",    item:"Furniture Set",    from:"Kitwe",  to:"Lusaka",      sender:"HomeCraft" },
+    };
+
+    function registerPackage(num, data) { packageStore[num] = data; }
+    function lookupPackage(input) { return packageStore[input.trim().toUpperCase()] || null; }
+
+    const ZAMBIA_LOCATIONS = [
+      "Lusaka","Kitwe","Ndola","Livingstone","Chipata","Kabwe","Chingola","Mufulira",
+      "Luanshya","Kasama","Solwezi","Mongu","Mazabuka","Kafue","Choma","Petauke",
+      "Mansa","Samfya","Senanga","Sesheke","Mbala","Mpika","Nakonde","Lundazi"
+    ];
+
+    const STATUS_STEPS = [
+      { key:"warehouse", label:"In Warehouse",          icon:"🏭", desc:"Package received at origin warehouse" },
+      { key:"transit",   label:"In Transit",             icon:"🚛", desc:"Package is on the way to destination" },
+      { key:"city",      label:"Reached City/Town",      icon:"🏙️", desc:"Package arrived in your area" },
+      { key:"delivered", label:"Delivered to Warehouse", icon:"📬", desc:"Package has been delivered to the destination warehouse" },
+      { key:"pickup",    label:"Ready for Pick-up",      icon:"✅", desc:"Ready for collection at pickup point" },
+    ];
+
+    const getStepIndex = s => STATUS_STEPS.findIndex(x => x.key === s);
+
+    const genTracking = () => {
+      let n = "ET";
+      for (let i = 0; i < 8; i++) n += Math.floor(Math.random() * 10);
+      return n;
+    };
+
+    /* ── Spinner ── */
+    function Spinner() {
+      return <div style={{width:22,height:22,border:"2.5px solid #eee",borderTopColor:"#1a1a1a",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto"}} />;
+    }
+
+    /* ── Logo ── */
+    function Logo({ dark }) {
+      return (
+        <div style={{display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:38,height:38,background:dark?"#fff":"#1a1a1a",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>📦</div>
+          <span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:23,color:dark?"#fff":"#1a1a1a",letterSpacing:"-0.5px"}}>Eris Trackers</span>
+        </div>
+      );
+    }
+
+    /* ── LOGIN ── */
+    function LoginScreen({ onLogin }) {
+      const [mode,setMode]         = useState("login");
+      const [name,setName]         = useState("");
+      const [email,setEmail]       = useState("");
+      const [password,setPassword] = useState("");
+      const [loading,setLoading]   = useState(false);
+      const [err,setErr]           = useState("");
+      const [users,setUsers]       = useState([{name:"Demo User",email:"demo@eris.zm",password:"demo123"}]);
+
+      const submit = () => {
+        setErr("");
+        if (!email||!password){setErr("Please fill in all fields.");return;}
+        if (mode==="signup"&&!name){setErr("Please enter your full name.");return;}
+        if (password.length<6){setErr("Password must be at least 6 characters.");return;}
+        setLoading(true);
+        setTimeout(()=>{
+          setLoading(false);
+          if (mode==="login"){
+            const u=users.find(u=>u.email===email&&u.password===password);
+            if(!u){setErr("Incorrect email or password.");return;}
+            onLogin(u);
+          } else {
+            if(users.find(u=>u.email===email)){setErr("An account with this email already exists.");return;}
+            const u={name,email,password};
+            setUsers(p=>[...p,u]);
+            onLogin(u);
+          }
+        },900);
+      };
+
+      return (
+        <div style={{minHeight:"100vh",display:"flex",background:"#1a1a1a",overflow:"hidden",position:"relative"}}>
+          <div style={{position:"absolute",top:-100,right:-100,width:400,height:400,borderRadius:"50%",background:"rgba(255,255,255,.03)",pointerEvents:"none"}} />
+          <div style={{position:"absolute",bottom:-140,left:-80,width:320,height:320,borderRadius:"50%",background:"rgba(255,255,255,.025)",pointerEvents:"none"}} />
+          <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"60px 80px"}} className="fu">
+            <Logo dark={true}/>
+            <div style={{marginTop:64}}>
+              <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:50,fontWeight:900,color:"#fff",lineHeight:1.1,marginBottom:18}}>
+                Track Every<br/>Package with<br/>Confidence.
+              </h1>
+              <p style={{color:"rgba(255,255,255,.45)",fontSize:15,lineHeight:1.8,maxWidth:340}}>
+                Zambia's trusted delivery intelligence platform. Send, receive, and track your parcels in real-time across every city and town.
+              </p>
+            </div>
+            <div style={{marginTop:56,display:"flex",gap:28}}>
+              {["🏭 Warehouse","🚛 In Transit","📬 Delivered"].map(s=>(
+                <div key={s} style={{color:"rgba(255,255,255,.35)",fontSize:12,fontWeight:500}}>{s}</div>
+              ))}
+            </div>
+          </div>
+          <div style={{width:500,background:"#f5f0eb",display:"flex",alignItems:"center",justifyContent:"center",padding:48}}>
+            <div style={{width:"100%",maxWidth:380}} className="sci">
+              <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:30,fontWeight:800,marginBottom:6}}>
+                {mode==="login"?"Welcome back":"Create account"}
+              </h2>
+              <p style={{color:"#999",fontSize:13,marginBottom:32}}>
+                {mode==="login"?"Sign in to your Eris Trackers account":"Join Eris Trackers today — it's free"}
+              </p>
+              {err&&<div style={{background:"#fee2e2",color:"#b91c1c",padding:"11px 16px",borderRadius:10,fontSize:13,marginBottom:18}}>⚠️ {err}</div>}
+              <div style={{display:"flex",flexDirection:"column",gap:16}}>
+                {mode==="signup"&&(
+                  <div>
+                    <label style={{fontSize:11,fontWeight:700,color:"#666",letterSpacing:"1px",display:"block",marginBottom:7}}>FULL NAME</label>
+                    <input className="inp" placeholder="Your full name" value={name} onChange={e=>setName(e.target.value)}/>
+                  </div>
+                )}
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,color:"#666",letterSpacing:"1px",display:"block",marginBottom:7}}>EMAIL ADDRESS</label>
+                  <input className="inp" type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)}/>
+                </div>
+                <div>
+                  <label style={{fontSize:11,fontWeight:700,color:"#666",letterSpacing:"1px",display:"block",marginBottom:7}}>PASSWORD</label>
+                  <input className="inp" type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()}/>
+                </div>
+              </div>
+              <button className="btn-black" onClick={submit} style={{width:"100%",marginTop:24,height:50,fontSize:15}}>
+                {loading?<Spinner/>:mode==="login"?"Sign In →":"Create Account →"}
+              </button>
+              <p style={{textAlign:"center",marginTop:22,fontSize:13,color:"#999"}}>
+                {mode==="login"?"No account? ":"Already registered? "}
+                <span onClick={()=>{setMode(mode==="login"?"signup":"login");setErr("");}} style={{color:"#1a1a1a",fontWeight:700,cursor:"pointer",textDecoration:"underline"}}>
+                  {mode==="login"?"Sign up free":"Sign in"}
+                </span>
+              </p>
+              {mode==="login"&&(
+                <div style={{marginTop:28,padding:"14px 16px",background:"#ede9e3",borderRadius:12,fontSize:12,color:"#777",lineHeight:1.8}}>
+                  <strong style={{color:"#1a1a1a"}}>Demo account</strong><br/>
+                  Email: demo@eris.zm<br/>Password: demo123
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── TRACKING RESULT ── */
+    function TrackingResult({ data, id, onClose }) {
+      const stepIdx = getStepIndex(data.status);
+      return (
+        <div className="overlay" onClick={onClose}>
+          <div className="modal sci" onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:24}}>
+              <div>
+                <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>Tracking: {id}</h3>
+                <p style={{color:"#888",fontSize:13,marginTop:3}}>{data.item}</p>
+              </div>
+              <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+            </div>
+            <div style={{background:"#f5f0eb",borderRadius:12,padding:"14px 18px",marginBottom:28}}>
+              <div style={{fontSize:11,color:"#aaa",letterSpacing:"1.5px",marginBottom:4}}>ROUTE</div>
+              <div style={{fontWeight:700,fontSize:15}}>{data.from} → {data.to}</div>
+              <div style={{fontSize:13,color:"#777",marginTop:2}}>Sender: {data.sender}</div>
+            </div>
+            {STATUS_STEPS.map((step,i)=>{
+              const done=i<=stepIdx,active=i===stepIdx;
+              return (
+                <div key={step.key} style={{display:"flex",gap:16}}>
+                  <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:38}}>
+                    <div style={{width:38,height:38,borderRadius:"50%",flexShrink:0,background:active?"#1a1a1a":done?"#2d6a4f":"#ede9e3",display:"flex",alignItems:"center",justifyContent:"center",fontSize:active?18:15,transition:"all .3s"}}>
+                      {done?(active?step.icon:<span style={{color:"#fff",fontWeight:700,fontSize:13}}>✓</span>):<span style={{color:"#bbb",fontSize:12,fontWeight:600}}>{i+1}</span>}
+                    </div>
+                    {i<STATUS_STEPS.length-1&&<div style={{width:2,flex:1,minHeight:24,background:i<stepIdx?"#2d6a4f":"#ede9e3",margin:"4px 0"}}/>}
+                  </div>
+                  <div style={{paddingTop:7,paddingBottom:20}}>
+                    <div style={{fontWeight:active?700:done?600:400,fontSize:14,color:done?"#1a1a1a":"#bbb"}}>{step.label}</div>
+                    {active&&<div style={{fontSize:12,color:"#777",marginTop:3}}>{step.desc}</div>}
+                  </div>
+                </div>
+              );
+            })}
+            <button className="btn-black" onClick={onClose} style={{width:"100%",marginTop:8}}>Close</button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── SENDER MODAL ── */
+    function SenderModal({ onClose, onRegistered }) {
+      const [form,setForm] = useState({item:"",value:"",location:"",receiverName:"",receiverPhone:"",receiverEmail:""});
+      const [generated,setGenerated] = useState(null);
+      const [err,setErr] = useState("");
+      const [copied,setCopied] = useState(false);
+      const set = (k,v)=>setForm(f=>({...f,[k]:v}));
+
+      const generate = () => {
+        if(!form.item||!form.value||!form.location||!form.receiverName||!form.receiverPhone){
+          setErr("Please fill in all required fields.");return;
+        }
+        setErr("");
+        const num = genTracking();
+        // ✅ Add to global store so receiver + track box can find it
+        registerPackage(num,{
+          status:"warehouse",
+          item:form.item,
+          from:"Origin",
+          to:form.location,
+          sender:form.receiverName,
+        });
+        setGenerated(num);
+        if(onRegistered) onRegistered(num);
+      };
+
+      const copy = ()=>{
+        navigator.clipboard.writeText(generated).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);});
+      };
+
+      if(generated) return (
+        <div className="overlay">
+          <div className="modal sci" style={{textAlign:"center"}}>
+            <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
+              <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb",lineHeight:1}}>✕</button>
+            </div>
+            <div style={{fontSize:54,marginBottom:14}}>🎉</div>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:800,marginBottom:8}}>Package Registered!</h2>
+            <p style={{color:"#888",fontSize:13,marginBottom:28}}>Share this tracking number with your receiver. They can use it to track the package instantly.</p>
+            <div style={{background:"#1a1a1a",borderRadius:16,padding:"22px 28px",marginBottom:16}}>
+              <div style={{fontSize:11,color:"rgba(255,255,255,.4)",letterSpacing:"2.5px",marginBottom:10}}>TRACKING NUMBER</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"#fff",letterSpacing:"3px"}}>{generated}</div>
+            </div>
+            <button className="copy-btn" onClick={copy} style={{width:"100%",padding:"12px",fontSize:14,marginBottom:24}}>
+              {copied?"✓ Copied to clipboard!":"📋 Copy Tracking Number"}
+            </button>
+            <div style={{textAlign:"left",background:"#f5f0eb",borderRadius:12,padding:"16px 18px",marginBottom:24}}>
+              {[["Item",form.item],["Value",`K ${Number(form.value).toLocaleString()}`],["Destination",form.location],["Receiver",form.receiverName],["Phone",form.receiverPhone]].map(([k,v])=>(
+                <div key={k} style={{display:"flex",gap:8,fontSize:13,marginBottom:6}}>
+                  <span style={{color:"#aaa",minWidth:80}}>{k}:</span>
+                  <span style={{fontWeight:600}}>{v}</span>
+                </div>
+              ))}
+            </div>
+            <button className="btn-black" style={{width:"100%"}} onClick={onClose}>Done</button>
+          </div>
+        </div>
+      );
+
+      return (
+        <div className="overlay" onClick={onClose}>
+          <div className="modal sci" onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+              <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>📤 Send a Package</h2>
+              <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+            </div>
+            {err&&<div style={{background:"#fee2e2",color:"#b91c1c",padding:"10px 14px",borderRadius:8,fontSize:13,marginBottom:16}}>⚠️ {err}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#666",letterSpacing:"1px",display:"block",marginBottom:7}}>ITEM NAME *</label>
+                <input className="inp" placeholder="e.g. Samsung TV, Clothing..." value={form.item} onChange={e=>set("item",e.target.value)}/>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#666",letterSpacing:"1px",display:"block",marginBottom:7}}>ITEM VALUE (ZMW) *</label>
+                <input className="inp" type="number" placeholder="e.g. 2500" value={form.value} onChange={e=>set("value",e.target.value)}/>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#666",letterSpacing:"1px",display:"block",marginBottom:7}}>DESTINATION IN ZAMBIA *</label>
+                <select className="inp" value={form.location} onChange={e=>set("location",e.target.value)}>
+                  <option value="">Select city or town...</option>
+                  {ZAMBIA_LOCATIONS.map(l=><option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+              <div style={{borderTop:"1px solid #ede9e3",paddingTop:16}}>
+                <div style={{fontSize:12,fontWeight:700,color:"#333",marginBottom:14}}>RECEIVER DETAILS</div>
+                {[["RECEIVER FULL NAME *","receiverName","Full name"],["PHONE NUMBER *","receiverPhone","+260 9XX XXX XXX"],["EMAIL (OPTIONAL)","receiverEmail","email@example.com"]].map(([lbl,key,ph])=>(
+                  <div key={key} style={{marginBottom:12}}>
+                    <label style={{fontSize:11,fontWeight:700,color:"#666",letterSpacing:"1px",display:"block",marginBottom:7}}>{lbl}</label>
+                    <input className="inp" placeholder={ph} value={form[key]} onChange={e=>set(key,e.target.value)}/>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <button className="btn-black" style={{width:"100%",marginTop:10,height:50}} onClick={generate}>Generate Tracking Number →</button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── RECEIVER MODAL ── */
+    function ReceiverModal({ onClose, onTrack }) {
+      const [itemName,setItemName] = useState("");
+      const [trackNum,setTrackNum] = useState("");
+      const [err,setErr] = useState("");
+
+      const confirm = ()=>{
+        if(!itemName||!trackNum){setErr("Please fill in both fields.");return;}
+        const found = lookupPackage(trackNum); // ✅ uses global store
+        if(!found){setErr("Tracking number not found. Please check and try again.");return;}
+        onTrack(trackNum.trim().toUpperCase(),found);
+        onClose();
+      };
+
+      return (
+        <div className="overlay" onClick={onClose}>
+          <div className="modal sci" onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+              <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>📥 Receive a Package</h2>
+              <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+            </div>
+            {err&&<div style={{background:"#fee2e2",color:"#b91c1c",padding:"10px 14px",borderRadius:8,fontSize:13,marginBottom:16}}>⚠️ {err}</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#666",letterSpacing:"1px",display:"block",marginBottom:7}}>ITEM YOU ARE RECEIVING</label>
+                <input className="inp" placeholder="e.g. Laptop, Shoes, Electronics..." value={itemName} onChange={e=>setItemName(e.target.value)}/>
+              </div>
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"#666",letterSpacing:"1px",display:"block",marginBottom:7}}>TRACKING NUMBER</label>
+                <input className="inp" placeholder="e.g. ET48291037" value={trackNum} onChange={e=>{setTrackNum(e.target.value);setErr("");}} onKeyDown={e=>e.key==="Enter"&&confirm()}/>
+              </div>
+              <div style={{background:"#f5f0eb",borderRadius:10,padding:"12px 16px",fontSize:12,color:"#888",lineHeight:1.8}}>
+                <strong style={{color:"#555"}}>Pre-loaded sample numbers:</strong><br/>
+                ET48291037 · ET83746201 · ET19284756<br/>ET56473829 · ET30021984
+              </div>
+            </div>
+            <button className="btn-black" style={{width:"100%",marginTop:20,height:50}} onClick={confirm}>Track My Package →</button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── RENAME MODAL ── */
+    function RenameModal({ user, onClose, onSave }) {
+      const [newName,setNewName] = useState(user.name);
+      const [err,setErr] = useState("");
+
+      const save = ()=>{
+        if(!newName.trim()){setErr("Name cannot be empty.");return;}
+        onSave(newName.trim());
+        onClose();
+      };
+
+      return (
+        <div className="overlay" onClick={onClose}>
+          <div className="modal sci" style={{maxWidth:400}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+              <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>✏️ Rename Account</h2>
+              <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+            </div>
+            <p style={{color:"#888",fontSize:13,marginBottom:20}}>Change the name displayed on your Eris Trackers account.</p>
+            {err&&<div style={{background:"#fee2e2",color:"#b91c1c",padding:"10px 14px",borderRadius:8,fontSize:13,marginBottom:16}}>⚠️ {err}</div>}
+            <label style={{fontSize:11,fontWeight:700,color:"#666",letterSpacing:"1px",display:"block",marginBottom:7}}>YOUR NAME</label>
+            <input className="inp" value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&save()} autoFocus/>
+            <div style={{display:"flex",gap:12,marginTop:24}}>
+              <button className="btn-outline" style={{flex:1}} onClick={onClose}>Cancel</button>
+              <button className="btn-black" style={{flex:1}} onClick={save}>Save Name</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── REPORT MODAL ── */
+    function ReportModal({ onClose }) {
+      const [copied,setCopied] = useState(false);
+      const reportEmail = "reports@eris.zm";
+      const copy = ()=>{ navigator.clipboard.writeText(reportEmail).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);}); };
+
+      return (
+        <div className="overlay" onClick={onClose}>
+          <div className="modal sci" style={{maxWidth:400}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+              <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>🚩 Report an Issue</h2>
+              <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+            </div>
+            <p style={{color:"#888",fontSize:13,lineHeight:1.7,marginBottom:24}}>
+              If you are experiencing a problem with your account, a delivery, or the app, please email our support team. We respond within 24 hours.
+            </p>
+            <div style={{background:"#f5f0eb",borderRadius:14,padding:"20px 22px",marginBottom:24}}>
+              <div style={{fontSize:11,color:"#aaa",letterSpacing:"1.5px",marginBottom:8}}>REPORT EMAIL</div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                <div style={{fontFamily:"'Playfair Display',serif",fontSize:19,fontWeight:800}}>{reportEmail}</div>
+                <button className="copy-btn" onClick={copy}>{copied?"✓ Copied!":"Copy"}</button>
+              </div>
+            </div>
+            <a href={`mailto:${reportEmail}?subject=Eris Trackers Issue Report`}
+              style={{display:"block",textAlign:"center",background:"#1a1a1a",color:"#fff",padding:"14px",borderRadius:10,fontWeight:600,fontSize:14,textDecoration:"none",marginBottom:12}}>
+              ✉️ Open Email App
+            </a>
+            <button className="btn-outline" style={{width:"100%"}} onClick={onClose}>Close</button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── SHARE MODAL ── */
+    function ShareModal({ onClose }) {
+      const siteUrl = "https://kasimbo.github.io/eris-trackers";
+      const [copied,setCopied] = useState(false);
+      const copy = ()=>{ navigator.clipboard.writeText(siteUrl).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);}); };
+
+      return (
+        <div className="overlay" onClick={onClose}>
+          <div className="modal sci" style={{maxWidth:400}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+              <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>🔗 Share Eris Trackers</h2>
+              <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+            </div>
+            <p style={{color:"#888",fontSize:13,lineHeight:1.7,marginBottom:24}}>Share Eris Trackers with senders and receivers across Zambia.</p>
+            <div style={{background:"#f5f0eb",borderRadius:14,padding:"18px 20px",marginBottom:24}}>
+              <div style={{fontSize:11,color:"#aaa",letterSpacing:"1.5px",marginBottom:8}}>WEBSITE LINK</div>
+              <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+                <div style={{fontSize:13,fontWeight:600,wordBreak:"break-all",color:"#1a1a1a"}}>{siteUrl}</div>
+                <button className="copy-btn" onClick={copy}>{copied?"✓ Copied!":"Copy"}</button>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:10,marginBottom:12}}>
+              <a href={`https://wa.me/?text=Track your packages with Eris Trackers: ${siteUrl}`} target="_blank" rel="noreferrer"
+                style={{flex:1,background:"#25D366",color:"#fff",padding:"12px",borderRadius:10,fontWeight:600,fontSize:13,textDecoration:"none",textAlign:"center"}}>
+                💬 WhatsApp
+              </a>
+              <a href={`mailto:?subject=Eris Trackers&body=Track your packages here: ${siteUrl}`}
+                style={{flex:1,background:"#1a1a1a",color:"#fff",padding:"12px",borderRadius:10,fontWeight:600,fontSize:13,textDecoration:"none",textAlign:"center"}}>
+                ✉️ Email
+              </a>
+            </div>
+            <button className="btn-outline" style={{width:"100%"}} onClick={onClose}>Close</button>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── PROFILE DROPDOWN ── */
+    function ProfileDropdown({ user, onClose, onLogout, onRename, onReport, onShare }) {
+      const items = [
+        {icon:"👤", label:user.name, sub:user.email},
+        {icon:"🔗", label:"Share",           action:onShare},
+        {icon:"✏️", label:"Rename",          action:onRename},
+        {icon:"🚩", label:"Report an Issue", action:onReport},
+        {icon:"🗑️", label:"Delete Account",  red:true, action:onLogout},
+      ];
+      return (
+        <div className="sd" style={{position:"absolute",top:54,right:0,background:"#fff",borderRadius:16,boxShadow:"0 8px 40px rgba(0,0,0,.16)",width:240,overflow:"hidden",zIndex:300}}>
+          {items.map((item,i)=>(
+            <div key={i} className="dd-item" style={{color:item.red?"#e53e3e":"#1a1a1a",borderBottom:i<items.length-1?"1px solid #f5f0eb":"none"}}
+              onClick={()=>{if(item.action)item.action();onClose();}}>
+              <span style={{fontSize:17}}>{item.icon}</span>
+              <div>
+                <div style={{fontWeight:item.sub?700:400,fontSize:item.sub?13:14}}>{item.label}</div>
+                {item.sub&&<div style={{fontSize:11,color:"#bbb",marginTop:1}}>{item.sub}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    /* ── MENU DROPDOWN ── */
+    function MenuDropdown({ onClose }) {
+      const [showReview,setShowReview] = useState(false);
+      const [stars,setStars]           = useState(5);
+      const [text,setText]             = useState("");
+      const [submitted,setSubmitted]   = useState(false);
+
+      if(showReview) return (
+        <div className="overlay" onClick={()=>{setShowReview(false);onClose();}}>
+          <div className="modal sci" onClick={e=>e.stopPropagation()}>
+            <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800,marginBottom:6}}>Leave a Review</h2>
+            <p style={{color:"#999",fontSize:13,marginBottom:24}}>How has your experience been with Eris Trackers?</p>
+            {submitted?(
+              <div style={{textAlign:"center",padding:"20px 0"}}>
+                <div style={{fontSize:52,marginBottom:14}}>⭐</div>
+                <h3 style={{fontSize:20,fontWeight:700,marginBottom:8}}>Thank you!</h3>
+                <p style={{color:"#888",fontSize:13}}>Your review has been submitted.</p>
+                <button className="btn-black" style={{marginTop:28}} onClick={()=>{setShowReview(false);onClose();}}>Close</button>
+              </div>
+            ):(
+              <>
+                <div style={{display:"flex",gap:6,marginBottom:20}}>
+                  {[1,2,3,4,5].map(r=>(
+                    <button key={r} onClick={()=>setStars(r)} style={{background:"none",border:"none",fontSize:30,cursor:"pointer",opacity:r<=stars?1:0.25,transition:"opacity .15s"}}>⭐</button>
+                  ))}
+                </div>
+                <textarea className="inp" rows={4} placeholder="Tell us about your experience..." value={text} onChange={e=>setText(e.target.value)} style={{resize:"vertical"}}/>
+                <button className="btn-black" style={{width:"100%",marginTop:16,height:48}} onClick={()=>setSubmitted(true)}>Submit Review</button>
+              </>
+            )}
+          </div>
+        </div>
+      );
+
+      return (
+        <div className="sd" style={{position:"absolute",top:54,left:0,background:"#fff",borderRadius:16,boxShadow:"0 8px 40px rgba(0,0,0,.16)",width:270,overflow:"hidden",zIndex:300}}>
+          <div style={{padding:"18px 18px 14px"}}>
+            <div style={{fontSize:10,fontWeight:700,color:"#bbb",letterSpacing:"2px",marginBottom:14}}>CUSTOMER CARE</div>
+            {[["📞","Phone","+260 977 123 456"],["✉️","Email","support@eris.zm"]].map(([icon,lbl,val])=>(
+              <div key={lbl} style={{display:"flex",alignItems:"center",gap:12,marginBottom:12}}>
+                <div style={{width:34,height:34,background:"#f5f0eb",borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>{icon}</div>
+                <div>
+                  <div style={{fontSize:11,color:"#aaa"}}>{lbl}</div>
+                  <div style={{fontSize:14,fontWeight:600}}>{val}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div style={{borderTop:"1px solid #f5f0eb"}}>
+            <div className="dd-item" onClick={()=>setShowReview(true)}>
+              <span style={{fontSize:18}}>⭐</span>
+              <span style={{fontSize:14,fontWeight:500}}>Leave a Review</span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    /* ── DASHBOARD ── */
+    function Dashboard({ user, onLogout, onRenameUser }) {
+      const [trackInput,setTrackInput]     = useState("");
+      const [trackResult,setTrackResult]   = useState(null);
+      const [trackId,setTrackId]           = useState("");
+      const [trackErr,setTrackErr]         = useState("");
+      const [showProfile,setShowProfile]   = useState(false);
+      const [showMenu,setShowMenu]         = useState(false);
+      const [showSender,setShowSender]     = useState(false);
+      const [showReceiver,setShowReceiver] = useState(false);
+      const [showRename,setShowRename]     = useState(false);
+      const [showReport,setShowReport]     = useState(false);
+      const [showShare,setShowShare]       = useState(false);
+      const [notif,setNotif]               = useState(null);
+
+      const notify = (msg,type="ok")=>{setNotif({msg,type});setTimeout(()=>setNotif(null),3200);};
+
+      // ✅ Main track box uses lookupPackage (global store) so sender-generated numbers work here too
+      const handleTrack = ()=>{
+        setTrackErr("");
+        const key = trackInput.trim().toUpperCase();
+        if(!key){setTrackErr("Please enter a tracking number.");return;}
+        const found = lookupPackage(key);
+        if(!found){setTrackErr("No package found. Please check the tracking number.");return;}
+        setTrackId(key);setTrackResult(found);
+      };
+
+      return (
+        <div style={{minHeight:"100vh",background:"#f5f0eb"}} onClick={()=>{setShowProfile(false);setShowMenu(false);}}>
+          {notif&&<div className={`notif ${notif.type}`}>{notif.msg}</div>}
+
+          <header style={{background:"#fff",borderBottom:"1px solid #ede9e3",padding:"0 28px",height:66,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,boxShadow:"0 1px 12px rgba(0,0,0,.06)"}}>
+            <div style={{position:"relative"}} onClick={e=>e.stopPropagation()}>
+              <button onClick={()=>{setShowMenu(v=>!v);setShowProfile(false);}}
+                style={{width:42,height:42,borderRadius:11,background:"#f5f0eb",border:"1.5px solid #e0dbd4",cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center"}}>⋯</button>
+              {showMenu&&<MenuDropdown onClose={()=>setShowMenu(false)}/>}
+            </div>
+            <Logo dark={false}/>
+            <div style={{position:"relative"}} onClick={e=>e.stopPropagation()}>
+              <button onClick={()=>{setShowProfile(v=>!v);setShowMenu(false);}}
+                style={{width:42,height:42,borderRadius:"50%",background:"#1a1a1a",border:"none",cursor:"pointer",color:"#fff",fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 10px rgba(0,0,0,.2)"}}>
+                {user.name[0].toUpperCase()}
+              </button>
+              {showProfile&&(
+                <ProfileDropdown
+                  user={user}
+                  onClose={()=>setShowProfile(false)}
+                  onLogout={onLogout}
+                  onRename={()=>setShowRename(true)}
+                  onReport={()=>setShowReport(true)}
+                  onShare={()=>setShowShare(true)}
+                />
+              )}
+            </div>
+          </header>
+
+          <div style={{background:"#1a1a1a",padding:"64px 24px 88px",textAlign:"center"}}>
+            <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:42,fontWeight:900,color:"#fff",lineHeight:1.1,marginBottom:12}} className="fu">Track Your Package</h1>
+            <p style={{color:"rgba(255,255,255,.45)",fontSize:15,marginBottom:38}}>Enter your tracking number below for a real-time status update.</p>
+            <div style={{maxWidth:580,margin:"0 auto"}}>
+              <div style={{display:"flex",gap:10,background:"rgba(255,255,255,.09)",borderRadius:16,padding:9,border:"1px solid rgba(255,255,255,.08)"}}>
+                <input value={trackInput} onChange={e=>{setTrackInput(e.target.value);setTrackErr("");}} onKeyDown={e=>e.key==="Enter"&&handleTrack()}
+                  placeholder="Enter tracking number  e.g. ET48291037"
+                  style={{flex:1,background:"transparent",border:"none",color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:15,outline:"none",padding:"9px 14px"}}/>
+                <button onClick={handleTrack} style={{background:"#fff",color:"#1a1a1a",border:"none",borderRadius:10,padding:"10px 26px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>Track →</button>
+              </div>
+              {trackErr&&<div style={{color:"#fca5a5",fontSize:13,marginTop:12}}>⚠️ {trackErr}</div>}
+              <p style={{color:"rgba(255,255,255,.25)",fontSize:12,marginTop:14}}>Try: ET48291037 · ET83746201 · ET19284756 · ET56473829 · ET30021984</p>
+            </div>
+          </div>
+
+          <div style={{maxWidth:720,margin:"-40px auto 0",padding:"0 20px 72px"}}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:18,marginBottom:22}}>
+              <div className="card action-card" onClick={()=>setShowSender(true)}>
+                <div style={{fontSize:38,marginBottom:16}}>📤</div>
+                <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:21,fontWeight:800,marginBottom:8}}>Sender</h3>
+                <p style={{color:"#888",fontSize:13,lineHeight:1.7}}>Register a package to send. Name the item, set its value, choose the Zambian destination, add receiver details and get a unique tracking number.</p>
+                <div style={{marginTop:20,fontWeight:700,fontSize:13,color:"#1a1a1a",display:"flex",alignItems:"center",gap:6}}>Start Sending <span>→</span></div>
+              </div>
+              <div className="card action-card" onClick={()=>setShowReceiver(true)}>
+                <div style={{fontSize:38,marginBottom:16}}>📥</div>
+                <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:21,fontWeight:800,marginBottom:8}}>Receiver</h3>
+                <p style={{color:"#888",fontSize:13,lineHeight:1.7}}>Expecting a delivery? Enter the name of the item you are receiving and your tracking number to instantly see where your package is.</p>
+                <div style={{marginTop:20,fontWeight:700,fontSize:13,color:"#1a1a1a",display:"flex",alignItems:"center",gap:6}}>Track Delivery <span>→</span></div>
+              </div>
+            </div>
+            <div className="card">
+              <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:19,fontWeight:800,marginBottom:18}}>Delivery Stages</h3>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {STATUS_STEPS.map((s,i)=>(
+                  <div key={s.key} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",background:"#f9f6f2",borderRadius:12}}>
+                    <span style={{fontSize:22}}>{s.icon}</span>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:600,fontSize:14}}>{s.label}</div>
+                      <div style={{fontSize:12,color:"#999",marginTop:2}}>{s.desc}</div>
+                    </div>
+                    <div style={{width:26,height:26,borderRadius:"50%",background:"#1a1a1a",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,fontWeight:700,flexShrink:0}}>{i+1}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {trackResult  && <TrackingResult data={trackResult} id={trackId} onClose={()=>setTrackResult(null)}/>}
+          {showSender   && <SenderModal onClose={()=>setShowSender(false)} onRegistered={()=>notify("Package registered! Tracking number generated.")}/>}
+          {showReceiver && <ReceiverModal onClose={()=>setShowReceiver(false)} onTrack={(id,data)=>{setTrackId(id);setTrackResult(data);}}/>}
+          {showRename   && <RenameModal user={user} onClose={()=>setShowRename(false)} onSave={n=>{onRenameUser(n);notify("Name updated to "+n);}}/>}
+          {showReport   && <ReportModal onClose={()=>setShowReport(false)}/>}
+          {showShare    && <ShareModal  onClose={()=>setShowShare(false)}/>}
+        </div>
+      );
+    }
+
+    /* ── ROOT ── */
+    function App() {
+      const [user,setUser] = useState(null);
+      const handleRename = newName => setUser(u=>({...u,name:newName}));
+      return user
+        ? <Dashboard user={user} onLogout={()=>setUser(null)} onRenameUser={handleRename}/>
+        : <LoginScreen onLogin={u=>setUser(u)}/>;
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
