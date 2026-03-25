@@ -1,0 +1,1753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Eris Trackers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); font-family: 'Inter', sans-serif; color: var(--text); transition: background .3s, color .3s; }
+    input, select, textarea { font-family: 'Inter', sans-serif; }
+    :root {
+      --bg: #f5f0eb; --text: #1a1a1a; --card: #fff; --border: #e0dbd4;
+      --muted: #888; --subtle: #f5f0eb; --subtle2: #ede9e3; --header: #fff;
+      --header-border: #ede9e3; --input-bg: #fff; --dd-border: #f5f0eb;
+      --shadow: rgba(0,0,0,.07); --shadow-lg: rgba(0,0,0,.16);
+    }
+    body.dark {
+      --bg: #111; --text: #f0ece6; --card: #1e1e1e; --border: #333;
+      --muted: #aaa; --subtle: #222; --subtle2: #2a2a2a; --header: #1a1a1a;
+      --header-border: #2a2a2a; --input-bg: #252525; --dd-border: #2a2a2a;
+      --shadow: rgba(0,0,0,.3); --shadow-lg: rgba(0,0,0,.5);
+    }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+    @keyframes fadeUp    { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes scaleIn   { from { opacity:0; transform:scale(.95); }       to { opacity:1; transform:scale(1); } }
+    @keyframes spin      { to { transform: rotate(360deg); } }
+    @keyframes slideDown { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes pulse     { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+    .fu  { animation: fadeUp    .4s ease forwards; }
+    .sci { animation: scaleIn   .3s ease forwards; }
+    .sd  { animation: slideDown .25s ease forwards; }
+    .btn-black {
+      background: #1a1a1a; color: #fff; border: none;
+      padding: 13px 28px; border-radius: 10px; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px;
+      transition: background .2s, transform .15s;
+    }
+    .btn-black:hover { background: #333; transform: translateY(-1px); }
+    .btn-outline {
+      background: transparent; color: var(--text); border: 1.5px solid var(--border);
+      padding: 11px 20px; border-radius: 10px; cursor: pointer;
+      font-family: 'Inter', sans-serif; font-weight: 500; font-size: 14px;
+      transition: all .2s;
+    }
+    .btn-outline:hover { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    .btn-red   { background:#e53e3e;color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;transition:background .2s; }
+    .btn-red:hover { background:#c53030; }
+    .btn-green { background:#276749;color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:'Inter',sans-serif;font-weight:600;font-size:13px;transition:background .2s; }
+    .btn-green:hover { background:#1e5038; }
+    .inp {
+      width:100%; background:var(--input-bg); border:1.5px solid var(--border);
+      border-radius:10px; padding:12px 16px; font-size:14px;
+      color:var(--text); outline:none; transition:border-color .2s;
+    }
+    .inp:focus { border-color:#1a1a1a; }
+    .inp::placeholder { color:#aaa; }
+    .card { background:var(--card); border-radius:18px; box-shadow:0 2px 16px var(--shadow); padding:28px; }
+    .action-card { cursor:pointer; transition:transform .2s, box-shadow .2s; }
+    .action-card:hover { transform:translateY(-4px); box-shadow:0 12px 36px var(--shadow-lg); }
+    .overlay { position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px; }
+    .modal { background:var(--card);border-radius:20px;padding:32px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25); }
+    .modal-wide { max-width:640px; }
+    .notif { position:fixed;top:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;padding:12px 24px;border-radius:40px;font-size:13px;font-weight:500;z-index:999;white-space:nowrap;animation:fadeUp .3s ease; }
+    .notif.ok  { background:#276749; }
+    .notif.err { background:#e53e3e; }
+    .dd-item { padding:13px 18px;display:flex;align-items:center;gap:12px;cursor:pointer;font-size:14px;border-bottom:1px solid var(--dd-border);transition:background .15s;background:var(--card); }
+    .dd-item:hover { background:var(--subtle); }
+    .dd-item:last-child { border-bottom:none; }
+    .copy-btn { background:#1a1a1a;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:background .2s;flex-shrink:0; }
+    .copy-btn:hover { background:#333; }
+    /* Admin */
+    .admin-sidebar { width:240px;background:#1a1a1a;min-height:100vh;display:flex;flex-direction:column;position:sticky;top:0;flex-shrink:0; }
+    .admin-nav-item { display:flex;align-items:center;gap:12px;padding:13px 22px;cursor:pointer;border-radius:10px;font-size:14px;font-weight:500;color:rgba(255,255,255,.55);transition:all .18s;margin:2px 10px; }
+    .admin-nav-item:hover { background:rgba(255,255,255,.08);color:#fff; }
+    .admin-nav-item.active { background:#fff;color:#1a1a1a;font-weight:700; }
+    .admin-content { flex:1;background:var(--bg);overflow-y:auto; }
+    .stat-card { background:var(--card);border-radius:16px;padding:22px 24px;box-shadow:0 2px 12px var(--shadow); }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%;border-collapse:collapse;font-size:13px; }
+    th { text-align:left;padding:11px 14px;background:var(--subtle);color:var(--muted);font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase; }
+    th:first-child { border-radius:10px 0 0 10px; }
+    th:last-child  { border-radius:0 10px 10px 0; }
+    td { padding:12px 14px;border-bottom:1px solid var(--dd-border);vertical-align:middle; }
+    tr:last-child td { border-bottom:none; }
+    tr:hover td { background:var(--subtle); }
+    .badge { display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700; }
+    .badge-warehouse { background:#e8f4fd;color:#2b6cb0; }
+    .badge-transit   { background:#fefce8;color:#92400e; }
+    .badge-city      { background:#f0fdf4;color:#276749; }
+    .badge-delivered { background:#f0fdf4;color:#276749; }
+    .badge-pickup    { background:#f0fff4;color:#276749; }
+    .badge-active    { background:#f0fdf4;color:#276749; }
+    .badge-suspended { background:#fee2e2;color:#b91c1c; }
+    .badge-admin     { background:#1a1a1a;color:#fff; }
+    .badge-user      { background:#f5f0eb;color:#666; }
+    .search-inp { background:var(--input-bg);border:1.5px solid var(--border);border-radius:10px;padding:10px 16px;font-size:14px;color:var(--text);outline:none;transition:border-color .2s;font-family:'Inter',sans-serif; }
+    .search-inp:focus { border-color:#1a1a1a; }
+    /* Notification bell */
+    .notif-bell { position:relative; }
+    .notif-dot  { position:absolute;top:-2px;right:-2px;width:10px;height:10px;background:#e53e3e;border-radius:50%;border:2px solid var(--header);animation:pulse 2s infinite; }
+    /* Map styles */
+    .map-node { cursor:pointer;transition:all .2s; }
+    .map-node:hover circle { r:10; }
+    /* Tabs */
+    .tab-bar { display:flex;gap:4px;background:var(--subtle);padding:4px;border-radius:12px;margin-bottom:24px; }
+    .tab-btn { flex:1;padding:9px 16px;border:none;border-radius:9px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--muted); }
+    .tab-btn.active { background:var(--card);color:var(--text);box-shadow:0 1px 6px var(--shadow); }
+    /* OTP input */
+    .otp-inp { width:52px;height:56px;text-align:center;font-size:24px;font-weight:800;border:2px solid var(--border);border-radius:12px;background:var(--input-bg);color:var(--text);outline:none;transition:border-color .2s; }
+    .otp-inp:focus { border-color:#1a1a1a; }
+    /* Proof upload */
+    .upload-zone { border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:all .2s; }
+    .upload-zone:hover { border-color:#1a1a1a;background:var(--subtle); }
+    /* Saved chip */
+    .saved-chip { display:inline-flex;align-items:center;gap:6px;background:var(--subtle);border:1.5px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s; }
+    .saved-chip:hover { background:var(--subtle2); }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo } = React;
+
+/* ══════ GLOBAL STATE ══════ */
+let darkMode = false;
+const setDarkMode = v => { darkMode=v; document.body.classList.toggle('dark',v); };
+
+/* ─── ADMIN CREDENTIALS (only you) ─── */
+const ADMIN_CREDENTIALS = { email:"admin@eris.zm", password:"Eris@Admin2025!" };
+
+/* ─── Reviews store ─── */
+let reviewStore = [
+  { id:1, userId:1, userName:"Demo User", stars:5, text:"Super fast tracking! Loved the real-time updates.", date:"2026-07-01", status:"published" },
+  { id:2, userId:3, userName:"Mary Phiri", stars:4, text:"Very helpful. Would be great to get SMS alerts too.", date:"2026-07-03", status:"published" },
+  { id:3, userId:4, userName:"John Banda", stars:3, text:"Good service but delivery took longer than expected.", date:"2026-07-05", status:"pending" },
+  { id:4, userId:0, userName:"Anonymous", stars:5, text:"Excellent platform. Very easy to use!", date:"2026-07-06", status:"pending" },
+];
+let reviewSeq = 5;
+const addReview = (userId, userName, stars, text) => {
+  reviewStore = [{ id:reviewSeq++, userId, userName, stars, text, date:new Date().toISOString().split("T")[0], status:"pending" }, ...reviewStore];
+};
+
+/* ─── Package track counts (simulates how many users tracked each) ─── */
+let trackCounts = {
+  "ET48291037": 14, "ET83746201": 7, "ET19284756": 22, "ET56473829": 31, "ET30021984": 9
+};
+const incrementTrack = id => { trackCounts[id] = (trackCounts[id]||0)+1; };
+
+const initialPackages = {
+  "ET48291037": { status:"transit",   item:"Samsung TV",       from:"Lusaka",  to:"Kitwe",       sender:"John Banda",    value:3200,  date:"2026-07-01", eta:"2026-07-05", proofUrl:null, history:[{status:"warehouse",date:"2026-07-01",note:"Received at Lusaka warehouse"},{status:"transit",date:"2026-07-02",note:"Dispatched to Kitwe"}] },
+  "ET83746201": { status:"warehouse", item:"Clothing Bundle",  from:"Ndola",   to:"Lusaka",      sender:"Mary Phiri",    value:450,   date:"2026-07-03", eta:"2026-07-07", proofUrl:null, history:[{status:"warehouse",date:"2026-07-03",note:"Received at Ndola warehouse"}] },
+  "ET19284756": { status:"city",      item:"Medical Supplies", from:"Lusaka",  to:"Livingstone", sender:"PharmaCare Ltd",value:8900,  date:"2026-07-04", eta:"2026-07-06", proofUrl:null, history:[{status:"warehouse",date:"2026-07-04",note:"Received"},{status:"transit",date:"2026-07-04",note:"Left Lusaka"},{status:"city",date:"2026-07-05",note:"Arrived in Livingstone area"}] },
+  "ET56473829": { status:"delivered", item:"Laptop",           from:"Lusaka",  to:"Chipata",     sender:"TechHub Zambia",value:6500,  date:"2026-07-02", eta:"2026-07-06", proofUrl:"📸", history:[{status:"warehouse",date:"2026-07-02",note:"Received"},{status:"transit",date:"2026-07-03",note:"En route"},{status:"city",date:"2026-07-05",note:"In Chipata"},{status:"delivered",date:"2026-07-06",note:"Delivered. Photo uploaded."}] },
+  "ET30021984": { status:"pickup",    item:"Furniture Set",    from:"Kitwe",   to:"Lusaka",      sender:"HomeCraft",     value:12000, date:"2026-06-28", eta:"2026-07-03", proofUrl:null, history:[{status:"warehouse",date:"2026-06-28",note:"Received"},{status:"transit",date:"2026-06-29",note:"En route"},{status:"city",date:"2026-07-01",note:"In Lusaka"},{status:"delivered",date:"2026-07-02",note:"At warehouse"},{status:"pickup",date:"2026-07-03",note:"Ready for collection"}] },
+};
+
+let packageStore = JSON.parse(JSON.stringify(initialPackages));
+let userStore = [
+  { id:1, name:"Demo User",      email:"demo@eris.zm",   password:"demo123",  role:"user",  status:"active",   joined:"2026-06-01", saved:["ET48291037","ET30021984"] },
+  { id:3, name:"Mary Phiri",     email:"mary@eris.zm",   password:"pass123",  role:"user",  status:"active",   joined:"2026-06-10", saved:[] },
+  { id:4, name:"John Banda",     email:"john@eris.zm",   password:"pass123",  role:"user",  status:"active",   joined:"2026-06-18", saved:[] },
+  { id:5, name:"TechHub Zambia", email:"tech@hub.zm",    password:"pass123",  role:"user",  status:"suspended",joined:"2026-07-01", saved:[] },
+];
+let userIdSeq = 6;
+
+let auditLog = [
+  { id:1, admin:"Admin", action:"Status updated", target:"ET48291037", detail:"warehouse → transit", date:"2026-07-02 09:14" },
+  { id:2, admin:"Admin", action:"User suspended",  target:"tech@hub.zm",  detail:"Status set to suspended", date:"2026-07-03 14:22" },
+  { id:3, admin:"Admin", action:"Package added",   target:"ET19284756",   detail:"Medical Supplies, Lusaka→Livingstone", date:"2026-07-04 08:05" },
+];
+let auditSeq = 4;
+const addAudit = (admin,action,target,detail) => {
+  const now = new Date();
+  auditLog = [{id:auditSeq++,admin,action,target,detail,date:`${now.toISOString().split('T')[0]} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`},...auditLog];
+};
+
+/* Notifications store */
+let notifStore = {
+  1:[
+    { id:1, msg:"ET48291037 is now In Transit 🚛", time:"2 hrs ago", read:false },
+    { id:2, msg:"ET30021984 is Ready for Pick-up ✅", time:"1 day ago", read:false },
+    { id:3, msg:"Package ET83746201 registered for you", time:"3 days ago", read:true },
+  ],
+  2:[ { id:1, msg:"New user registered: Mary Phiri", time:"4 days ago", read:true } ],
+};
+const getUserNotifs = id => notifStore[id]||[];
+const markAllRead = id => { if(notifStore[id]) notifStore[id]=notifStore[id].map(n=>({...n,read:true})); };
+
+function registerPackage(num,data) { packageStore[num]=data; }
+function lookupPackage(input) { return packageStore[input.trim().toUpperCase()]||null; }
+function getAllPackages() { return packageStore; }
+function getAllUsers() { return userStore; }
+
+const ZAMBIA_LOCATIONS = [
+  "Lusaka","Kitwe","Ndola","Livingstone","Chipata","Kabwe","Chingola","Mufulira",
+  "Luanshya","Kasama","Solwezi","Mongu","Mazabuka","Kafue","Choma","Petauke",
+  "Mansa","Samfya","Senanga","Sesheke","Mbala","Mpika","Nakonde","Lundazi"
+];
+
+
+
+const STATUS_STEPS = [
+  { key:"warehouse", label:"In Warehouse",          icon:"🏭", desc:"Package received at origin warehouse" },
+  { key:"transit",   label:"In Transit",             icon:"🚛", desc:"Package is on the way to destination" },
+  { key:"city",      label:"Reached City/Town",      icon:"🏙️", desc:"Package arrived in your area" },
+  { key:"delivered", label:"Delivered to Warehouse", icon:"📬", desc:"Package delivered to destination warehouse" },
+  { key:"pickup",    label:"Ready for Pick-up",      icon:"✅", desc:"Ready for collection at pickup point" },
+];
+const getStepIndex = s => STATUS_STEPS.findIndex(x=>x.key===s);
+
+const genTracking = () => { let n="ET"; for(let i=0;i<8;i++) n+=Math.floor(Math.random()*10); return n; };
+
+const getETA = (from, to) => {
+  const days = from===to?1:["Lusaka","Kitwe","Ndola","Livingstone"].includes(to)?2:["Chipata","Mongu","Kasama"].includes(to)?4:3;
+  const d = new Date(); d.setDate(d.getDate()+days);
+  return d.toISOString().split("T")[0];
+};
+
+/* ══════ SMALL COMPONENTS ══════ */
+function Spinner() { return <div style={{width:22,height:22,border:"2.5px solid #eee",borderTopColor:"#1a1a1a",borderRadius:"50%",animation:"spin .7s linear infinite",margin:"0 auto"}}/>; }
+
+function Logo({ dark }) {
+  return (
+    <div style={{display:"flex",alignItems:"center",gap:10}}>
+      <div style={{width:38,height:38,background:dark?"#fff":"#1a1a1a",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}>📦</div>
+      <span style={{fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:23,color:dark?"#fff":"var(--text)",letterSpacing:"-0.5px"}}>Eris Trackers</span>
+    </div>
+  );
+}
+
+function StatusBadge({ status }) {
+  const map={warehouse:"🏭 Warehouse",transit:"🚛 In Transit",city:"🏙️ Reached City",delivered:"📬 Delivered",pickup:"✅ Ready for Pickup"};
+  return <span className={`badge badge-${status}`}>{map[status]||status}</span>;
+}
+
+/* ══════ OTP / 2FA ══════ */
+function OTPModal({ email, onVerified, onCancel }) {
+  const [otp,setOtp]         = useState(["","","","","",""]);
+  const [err,setErr]         = useState("");
+  const [sent,setSent]       = useState(true);
+  const [resent,setResent]   = useState(false);
+  const refs                 = Array.from({length:6},()=>useRef(null));
+  // For demo the code is always 123456
+  const DEMO_CODE            = "123456";
+
+  const handleKey = (i,v) => {
+    if(!/^\d?$/.test(v)) return;
+    const next=[...otp]; next[i]=v; setOtp(next);
+    if(v&&i<5) refs[i+1].current.focus();
+  };
+  const handleBack = (i,e) => {
+    if(e.key==="Backspace"&&!otp[i]&&i>0) refs[i-1].current.focus();
+  };
+  const verify = () => {
+    const code = otp.join("");
+    if(code===DEMO_CODE) { onVerified(); }
+    else { setErr("Incorrect code. Please try again."); setOtp(["","","","","",""]); refs[0].current.focus(); }
+  };
+  const resend = () => { setResent(true); setOtp(["","","","","",""]); setErr(""); refs[0].current.focus(); setTimeout(()=>setResent(false),3000); };
+
+  return (
+    <div className="overlay">
+      <div className="modal sci" style={{maxWidth:400,textAlign:"center"}}>
+        <div style={{fontSize:44,marginBottom:16}}>🔐</div>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:800,marginBottom:8}}>Two-Factor Verification</h2>
+        <p style={{color:"var(--muted)",fontSize:13,lineHeight:1.7,marginBottom:28}}>
+          A 6-digit code was sent to <strong>{email}</strong>.
+        </p>
+        {err&&<div style={{background:"#fee2e2",color:"#b91c1c",padding:"10px 14px",borderRadius:8,fontSize:13,marginBottom:16}}>⚠️ {err}</div>}
+        <div style={{display:"flex",gap:8,justifyContent:"center",marginBottom:24}}>
+          {otp.map((v,i)=>(
+            <input key={i} ref={refs[i]} className="otp-inp" maxLength={1} value={v}
+              onChange={e=>handleKey(i,e.target.value)}
+              onKeyDown={e=>handleBack(i,e)}
+              onFocus={e=>e.target.select()}/>
+          ))}
+        </div>
+        <button className="btn-black" style={{width:"100%",height:50,marginBottom:14}} onClick={verify}>Verify →</button>
+        <div style={{fontSize:13,color:"var(--muted)"}}>
+          Didn't receive it?{" "}
+          <span onClick={resend} style={{color:"#1a1a1a",fontWeight:700,cursor:"pointer",textDecoration:"underline"}}>
+            {resent?"✓ Resent!":"Resend code"}
+          </span>
+        </div>
+        <div style={{marginTop:12}}>
+          <span onClick={onCancel} style={{fontSize:12,color:"#aaa",cursor:"pointer"}}>← Back to login</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════ LOGIN ══════ */
+/* ══════ FORGOT PASSWORD ══════ */
+function ForgotPasswordModal({ onClose }) {
+  const [email,setEmail]     = useState("");
+  const [err,setErr]         = useState("");
+  const [submitted,setSubmitted] = useState(false);
+
+  const submit = () => {
+    setErr("");
+    if(!email.trim()){setErr("Please enter your email address.");return;}
+    if(!/\S+@\S+\.\S+/.test(email)){setErr("Please enter a valid email address.");return;}
+    const found = userStore.find(u=>u.email===email) || (email===ADMIN_CREDENTIALS.email);
+    // Always show success (don't reveal if email exists)
+    setSubmitted(true);
+  };
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal sci" style={{maxWidth:400}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>🔑 Forgot Password</h2>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+        </div>
+        {submitted?(
+          <div style={{textAlign:"center",padding:"20px 0"}}>
+            <div style={{fontSize:48,marginBottom:14}}>📧</div>
+            <h3 style={{fontSize:18,fontWeight:700,marginBottom:10}}>Check your email</h3>
+            <p style={{color:"var(--muted)",fontSize:13,lineHeight:1.7,marginBottom:24}}>If an account exists for <strong>{email}</strong>, a password reset link has been sent.</p>
+            <button className="btn-black" style={{width:"100%"}} onClick={onClose}>Back to Sign In</button>
+          </div>
+        ):(
+          <>
+            <p style={{color:"var(--muted)",fontSize:13,lineHeight:1.7,marginBottom:24}}>Enter your registered email address and we'll send you a reset link.</p>
+            {err&&<div style={{background:"#fee2e2",color:"#b91c1c",padding:"10px 14px",borderRadius:8,fontSize:13,marginBottom:16}}>⚠️ {err}</div>}
+            <label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:7}}>EMAIL ADDRESS *</label>
+            <input className="inp" type="email" placeholder="you@example.com" value={email}
+              onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()} autoFocus/>
+            <div style={{display:"flex",gap:12,marginTop:24}}>
+              <button className="btn-outline" style={{flex:1}} onClick={onClose}>Cancel</button>
+              <button className="btn-black" style={{flex:1}} onClick={submit}>Send Reset Link →</button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LoginScreen({ onLogin }) {
+  const [mode,setMode]         = useState("login");
+  const [name,setName]         = useState("");
+  const [email,setEmail]       = useState("");
+  const [password,setPassword] = useState("");
+  const [loading,setLoading]   = useState(false);
+  const [err,setErr]           = useState("");
+  const [pending2FA,setPending2FA] = useState(null);
+  const [showForgot,setShowForgot] = useState(false);
+
+  const submit = () => {
+    setErr("");
+    if(!email||!password){setErr("Please fill in all fields.");return;}
+    if(mode==="signup"&&!name){setErr("Please enter your full name.");return;}
+    if(password.length<6){setErr("Password must be at least 6 characters.");return;}
+    setLoading(true);
+    setTimeout(()=>{
+      setLoading(false);
+      if(mode==="login"){
+        if(email===ADMIN_CREDENTIALS.email&&password===ADMIN_CREDENTIALS.password){
+          const adminUser={id:2,name:"Admin",email:ADMIN_CREDENTIALS.email,password:ADMIN_CREDENTIALS.password,role:"admin",status:"active",joined:"2026-05-15",saved:[]};
+          onLogin(adminUser); // Admin logs in directly
+          return;
+        }
+        const u=userStore.find(u=>u.email===email&&u.password===password);
+        if(!u){setErr("Incorrect email or password.");return;}
+        if(u.status==="suspended"){setErr("Your account has been suspended. Contact support.");return;}
+        if(u.role==="admin"){setErr("Incorrect email or password.");return;}
+        onLogin(u); // Existing users log in directly, no OTP needed
+      } else {
+        if(email===ADMIN_CREDENTIALS.email){setErr("This email is reserved.");return;}
+        if(userStore.find(u=>u.email===email)){setErr("An account with this email already exists.");return;}
+        const u={id:userIdSeq++,name,email,password,role:"user",status:"active",joined:new Date().toISOString().split("T")[0],saved:[],packages:[]};
+        userStore=[...userStore,u];
+        setPending2FA(u); // Only new signups go through OTP
+      }
+    },900);
+  };
+
+  if(pending2FA) return (
+    <OTPModal email={pending2FA.email} onVerified={()=>onLogin(pending2FA)} onCancel={()=>setPending2FA(null)}/>
+  );
+
+  return (
+    <div style={{minHeight:"100vh",display:"flex",background:"#1a1a1a",overflow:"hidden",position:"relative"}}>
+      {showForgot&&<ForgotPasswordModal onClose={()=>setShowForgot(false)}/>}
+      <div style={{position:"absolute",top:-100,right:-100,width:400,height:400,borderRadius:"50%",background:"rgba(255,255,255,.03)",pointerEvents:"none"}}/>
+      <div style={{position:"absolute",bottom:-140,left:-80,width:320,height:320,borderRadius:"50%",background:"rgba(255,255,255,.025)",pointerEvents:"none"}}/>
+      <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"center",padding:"60px 80px"}} className="fu">
+        <Logo dark={true}/>
+        <div style={{marginTop:64}}>
+          <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:50,fontWeight:900,color:"#fff",lineHeight:1.1,marginBottom:18}}>
+            Track Every<br/>Package with<br/>Confidence.
+          </h1>
+          <p style={{color:"rgba(255,255,255,.45)",fontSize:15,lineHeight:1.8,maxWidth:340}}>
+            Zambia's trusted delivery intelligence platform. Real-time tracking across every city and town.
+          </p>
+        </div>
+        <div style={{marginTop:48,display:"flex",gap:16,flexWrap:"wrap"}}>
+          {["🔐 2FA Security","🔔 Notifications","🌙 Dark Mode","📸 Proof of Delivery"].map(s=>(
+            <div key={s} style={{color:"rgba(255,255,255,.35)",fontSize:12,fontWeight:500,background:"rgba(255,255,255,.06)",padding:"6px 14px",borderRadius:20}}>{s}</div>
+          ))}
+        </div>
+      </div>
+      <div style={{width:500,background:"var(--bg)",display:"flex",alignItems:"center",justifyContent:"center",padding:48}}>
+        <div style={{width:"100%",maxWidth:380}} className="sci">
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:30,fontWeight:800,marginBottom:6,color:"var(--text)"}}>
+            {mode==="login"?"Welcome back":"Create account"}
+          </h2>
+          <p style={{color:"var(--muted)",fontSize:13,marginBottom:32}}>
+            {mode==="login"?"Sign in — a verification code will be sent":"Join Eris Trackers today — it's free"}
+          </p>
+          {err&&<div style={{background:"#fee2e2",color:"#b91c1c",padding:"11px 16px",borderRadius:10,fontSize:13,marginBottom:18}}>⚠️ {err}</div>}
+          <div style={{display:"flex",flexDirection:"column",gap:16}}>
+            {mode==="signup"&&(
+              <div>
+                <label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:7}}>FULL NAME</label>
+                <input className="inp" placeholder="Your full name" value={name} onChange={e=>setName(e.target.value)}/>
+              </div>
+            )}
+            <div>
+              <label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:7}}>EMAIL ADDRESS</label>
+              <input className="inp" type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)}/>
+            </div>
+            <div>
+              <label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:7}}>PASSWORD</label>
+              <input className="inp" type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&submit()}/>
+            </div>
+          </div>
+          {mode==="login"&&(
+            <div style={{textAlign:"right",marginTop:10}}>
+              <span onClick={()=>setShowForgot(true)} style={{fontSize:12,color:"var(--muted)",cursor:"pointer",textDecoration:"underline"}}>Forgot password?</span>
+            </div>
+          )}
+          <button className="btn-black" onClick={submit} style={{width:"100%",marginTop:20,height:50,fontSize:15}}>
+            {loading?<Spinner/>:mode==="login"?"Continue →":"Create Account →"}
+          </button>
+          <p style={{textAlign:"center",marginTop:22,fontSize:13,color:"var(--muted)"}}>
+            {mode==="login"?"No account? ":"Already registered? "}
+            <span onClick={()=>{setMode(mode==="login"?"signup":"login");setErr("");}} style={{color:"var(--text)",fontWeight:700,cursor:"pointer",textDecoration:"underline"}}>
+              {mode==="login"?"Sign up free":"Sign in"}
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════ NOTIFICATIONS PANEL ══════ */
+function NotifPanel({ userId, onClose }) {
+  const [notifs,setNotifs] = useState(getUserNotifs(userId));
+  const unread = notifs.filter(n=>!n.read).length;
+
+  const readAll = () => { markAllRead(userId); setNotifs(getUserNotifs(userId).map(n=>({...n,read:true}))); };
+
+  return (
+    <div className="sd" style={{position:"absolute",top:54,right:0,background:"var(--card)",borderRadius:16,boxShadow:"0 8px 40px var(--shadow-lg)",width:320,overflow:"hidden",zIndex:300}}>
+      <div style={{padding:"16px 18px 12px",display:"flex",justifyContent:"space-between",alignItems:"center",borderBottom:"1px solid var(--dd-border)"}}>
+        <div style={{fontWeight:700,fontSize:14}}>Notifications {unread>0&&<span style={{background:"#e53e3e",color:"#fff",borderRadius:10,padding:"1px 7px",fontSize:11,marginLeft:6}}>{unread}</span>}</div>
+        {unread>0&&<span onClick={readAll} style={{fontSize:11,color:"#1a1a1a",cursor:"pointer",fontWeight:600}}>Mark all read</span>}
+      </div>
+      {notifs.length===0&&<div style={{padding:"28px",textAlign:"center",color:"var(--muted)",fontSize:13}}>No notifications yet.</div>}
+      {notifs.map(n=>(
+        <div key={n.id} className="dd-item" style={{background:n.read?"var(--card)":"var(--subtle)",gap:10,alignItems:"flex-start"}}>
+          <div style={{width:8,height:8,borderRadius:"50%",background:n.read?"transparent":"#e53e3e",flexShrink:0,marginTop:5}}/>
+          <div>
+            <div style={{fontSize:13,fontWeight:n.read?400:600,lineHeight:1.5}}>{n.msg}</div>
+            <div style={{fontSize:11,color:"var(--muted)",marginTop:3}}>{n.time}</div>
+          </div>
+        </div>
+      ))}
+      <div className="dd-item" style={{justifyContent:"center",fontSize:13,color:"var(--muted)"}} onClick={onClose}>Close</div>
+    </div>
+  );
+}
+
+/* ══════ TRACKING RESULT ══════ */
+function TrackingResult({ data, id, onClose, userId, onSave }) {
+  const stepIdx = getStepIndex(data.status);
+  const [saved,setSaved] = useState(()=>{
+    const u=userStore.find(u=>u.id===userId);
+    return u?u.saved.includes(id):false;
+  });
+  const [showProof,setShowProof] = useState(false);
+  const [proofImg,setProofImg]   = useState(data.proofUrl);
+
+  const toggleSave = () => {
+    userStore=userStore.map(u=>{
+      if(u.id!==userId) return u;
+      const s=u.saved.includes(id)?u.saved.filter(x=>x!==id):[...u.saved,id];
+      return {...u,saved:s};
+    });
+    setSaved(v=>!v);
+    if(onSave) onSave();
+  };
+
+  const daysLeft = data.eta ? Math.ceil((new Date(data.eta)-new Date())/(1000*60*60*24)) : null;
+
+  const handleProofUpload = e => {
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      packageStore[id].proofUrl = ev.target.result;
+      setProofImg(ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal sci" style={{maxWidth:520}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+          <div>
+            <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>Tracking: {id}</h3>
+            <p style={{color:"var(--muted)",fontSize:13,marginTop:3}}>{data.item}</p>
+          </div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button onClick={toggleSave} title={saved?"Unsave":"Save"} style={{background:"none",border:"1.5px solid var(--border)",borderRadius:8,padding:"6px 10px",cursor:"pointer",fontSize:16}}>
+              {saved?"⭐":"☆"}
+            </button>
+            <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+          </div>
+        </div>
+
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:20}}>
+          <div style={{background:"var(--subtle)",borderRadius:12,padding:"12px 16px"}}>
+            <div style={{fontSize:11,color:"#aaa",letterSpacing:"1.5px",marginBottom:4}}>ROUTE</div>
+            <div style={{fontWeight:700,fontSize:14}}>{data.from} → {data.to}</div>
+            <div style={{fontSize:12,color:"var(--muted)",marginTop:2}}>Sender: {data.sender}</div>
+          </div>
+          <div style={{background:daysLeft!==null&&daysLeft<=0?"#f0fdf4":daysLeft!==null&&daysLeft<=1?"#fefce8":"var(--subtle)",borderRadius:12,padding:"12px 16px"}}>
+            <div style={{fontSize:11,color:"#aaa",letterSpacing:"1.5px",marginBottom:4}}>ESTIMATED DELIVERY</div>
+            {data.eta ? (
+              <>
+                <div style={{fontWeight:700,fontSize:14}}>{data.eta}</div>
+                <div style={{fontSize:12,color:daysLeft<=0?"#276749":daysLeft<=1?"#92400e":"var(--muted)",marginTop:2}}>
+                  {daysLeft<=0?"✅ Delivered / Today":daysLeft===1?"⚡ Tomorrow":daysLeft>0?`${daysLeft} days remaining`:"—"}
+                </div>
+              </>
+            ):<div style={{color:"var(--muted)",fontSize:13}}>Not available</div>}
+          </div>
+        </div>
+
+        {/* Timeline */}
+        {STATUS_STEPS.map((step,i)=>{
+          const done=i<=stepIdx,active=i===stepIdx;
+          const histEntry = data.history?data.history.find(h=>h.status===step.key):null;
+          return (
+            <div key={step.key} style={{display:"flex",gap:16}}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",width:38}}>
+                <div style={{width:38,height:38,borderRadius:"50%",flexShrink:0,background:active?"#1a1a1a":done?"#2d6a4f":"var(--subtle2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:active?18:15,transition:"all .3s"}}>
+                  {done?(active?step.icon:<span style={{color:"#fff",fontWeight:700,fontSize:13}}>✓</span>):<span style={{color:"#bbb",fontSize:12,fontWeight:600}}>{i+1}</span>}
+                </div>
+                {i<STATUS_STEPS.length-1&&<div style={{width:2,flex:1,minHeight:24,background:i<stepIdx?"#2d6a4f":"var(--subtle2)",margin:"4px 0"}}/>}
+              </div>
+              <div style={{paddingTop:7,paddingBottom:16}}>
+                <div style={{fontWeight:active?700:done?600:400,fontSize:14,color:done?"var(--text)":"#bbb"}}>{step.label}</div>
+                {histEntry&&<div style={{fontSize:11,color:"var(--muted)",marginTop:2}}>{histEntry.date} · {histEntry.note}</div>}
+                {active&&!histEntry&&<div style={{fontSize:12,color:"var(--muted)",marginTop:2}}>{step.desc}</div>}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Proof of delivery */}
+        {(data.status==="delivered"||data.status==="pickup")&&(
+          <div style={{marginTop:8,borderTop:"1px solid var(--border)",paddingTop:16}}>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:10}}>📸 PROOF OF DELIVERY</div>
+            {proofImg&&proofImg!=="📸" ? (
+              <img src={proofImg} alt="Proof" style={{width:"100%",borderRadius:10,maxHeight:180,objectFit:"cover"}}/>
+            ):(
+              <label className="upload-zone" style={{display:"block"}}>
+                <div style={{fontSize:28,marginBottom:8}}>📷</div>
+                <div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>Upload proof of delivery</div>
+                <div style={{fontSize:12,color:"var(--muted)",marginTop:4}}>Click to choose a photo</div>
+                <input type="file" accept="image/*" style={{display:"none"}} onChange={handleProofUpload}/>
+              </label>
+            )}
+          </div>
+        )}
+
+        <button className="btn-black" onClick={onClose} style={{width:"100%",marginTop:16}}>Close</button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════ SENDER MODAL ══════ */
+function SenderModal({ onClose, onRegistered, userId }) {
+  const [form,setForm] = useState({item:"",value:"",location:"",receiverName:"",receiverPhone:"",receiverEmail:""});
+  const [generated,setGenerated] = useState(null);
+  const [err,setErr] = useState("");
+  const [copied,setCopied] = useState(false);
+  const set = (k,v)=>setForm(f=>({...f,[k]:v}));
+
+  const generate = () => {
+    if(!form.item||!form.value||!form.location||!form.receiverName||!form.receiverPhone){setErr("Please fill in all required fields.");return;}
+    setErr("");
+    const num = genTracking();
+    const eta = getETA("Lusaka",form.location);
+    registerPackage(num,{
+      status:"warehouse",item:form.item,from:"Lusaka",to:form.location,
+      sender:form.receiverName,value:Number(form.value),date:new Date().toISOString().split("T")[0],
+      eta,proofUrl:null,
+      history:[{status:"warehouse",date:new Date().toISOString().split("T")[0],note:"Received at origin warehouse"}]
+    });
+    // Auto-save tracking number to the sender's saved packages
+    if(userId){
+      userStore=userStore.map(u=>u.id===userId?{...u,saved:[...new Set([...(u.saved||[]),num])]}:u);
+    }
+    trackCounts[num]=0;
+    setGenerated(num);
+    if(onRegistered) onRegistered(num);
+  };
+
+  const copy = ()=>{
+    const fallback = txt => {
+      const ta = document.createElement("textarea");
+      ta.value = txt; ta.style.position="fixed"; ta.style.opacity="0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try { document.execCommand("copy"); } catch(e){}
+      document.body.removeChild(ta);
+    };
+    if(navigator.clipboard&&window.isSecureContext){
+      navigator.clipboard.writeText(generated).catch(()=>fallback(generated));
+    } else { fallback(generated); }
+    setCopied(true); setTimeout(()=>setCopied(false),2000);
+  };
+
+  if(generated) return (
+    <div className="overlay">
+      <div className="modal sci" style={{textAlign:"center"}}>
+        <div style={{display:"flex",justifyContent:"flex-end",marginBottom:8}}>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb",lineHeight:1}}>✕</button>
+        </div>
+        <div style={{fontSize:54,marginBottom:14}}>🎉</div>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:24,fontWeight:800,marginBottom:8}}>Package Registered!</h2>
+        <div style={{background:"#1a1a1a",borderRadius:16,padding:"22px 28px",marginBottom:14}}>
+          <div style={{fontSize:11,color:"rgba(255,255,255,.4)",letterSpacing:"2.5px",marginBottom:10}}>TRACKING NUMBER</div>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:36,fontWeight:900,color:"#fff",letterSpacing:"3px"}}>{generated}</div>
+        </div>
+        <button className="copy-btn" onClick={copy} style={{width:"100%",padding:"12px",fontSize:14,marginBottom:20}}>
+          {copied?"✓ Copied!":"📋 Copy Tracking Number"}
+        </button>
+        {/* Notifications */}
+        <div style={{textAlign:"left",marginBottom:20}}>
+          <div style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",marginBottom:10}}>RECEIVER NOTIFICATIONS SENT</div>
+          <div style={{background:"#f0fdf4",border:"1.5px solid #bbf7d0",borderRadius:12,padding:"13px 15px",marginBottom:10}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+              <span style={{fontSize:15}}>📱</span>
+              <span style={{fontSize:11,fontWeight:700,color:"#276749",letterSpacing:"1px"}}>SMS → {form.receiverPhone}</span>
+            </div>
+            <div style={{fontSize:12,color:"#333",lineHeight:1.7,background:"#fff",borderRadius:8,padding:"10px 12px"}}>
+              Hi {form.receiverName}, a parcel is on its way to you!<br/>
+              <strong>Item:</strong> {form.item} · <strong>Tracking #:</strong> {generated}<br/>
+              Track at eris.zm
+            </div>
+          </div>
+          {form.receiverEmail?(
+            <div style={{background:"#eff6ff",border:"1.5px solid #bfdbfe",borderRadius:12,padding:"13px 15px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                <span style={{fontSize:15}}>✉️</span>
+                <span style={{fontSize:11,fontWeight:700,color:"#1d4ed8",letterSpacing:"1px"}}>EMAIL → {form.receiverEmail}</span>
+              </div>
+              <div style={{fontSize:12,color:"#333",lineHeight:1.7,background:"#fff",borderRadius:8,padding:"10px 12px"}}>
+                <strong>Subject:</strong> Your parcel is on its way — {generated}<br/><br/>
+                Dear {form.receiverName}, a package (<strong>{form.item}</strong>) has been registered for delivery to <strong>{form.location}</strong>. Use tracking number <strong>{generated}</strong> to monitor your delivery on Eris Trackers.
+              </div>
+            </div>
+          ):(
+            <div style={{background:"var(--subtle)",border:"1.5px dashed var(--border)",borderRadius:12,padding:"11px 15px",fontSize:12,color:"var(--muted)"}}>
+              ✉️ No email provided — SMS only.
+            </div>
+          )}
+        </div>
+        <button className="btn-black" style={{width:"100%"}} onClick={onClose}>Done</button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal sci" onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>📤 Send a Package</h2>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+        </div>
+        {err&&<div style={{background:"#fee2e2",color:"#b91c1c",padding:"10px 14px",borderRadius:8,fontSize:13,marginBottom:16}}>⚠️ {err}</div>}
+        <div style={{display:"flex",flexDirection:"column",gap:14}}>
+          <div><label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:7}}>ITEM NAME *</label>
+            <input className="inp" placeholder="e.g. Samsung TV" value={form.item} onChange={e=>set("item",e.target.value)}/></div>
+          <div><label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:7}}>ITEM VALUE (ZMW) *</label>
+            <input className="inp" type="number" placeholder="e.g. 2500" value={form.value} onChange={e=>set("value",e.target.value)}/></div>
+          <div><label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:7}}>DESTINATION *</label>
+            <select className="inp" value={form.location} onChange={e=>set("location",e.target.value)}>
+              <option value="">Select city or town...</option>
+              {ZAMBIA_LOCATIONS.map(l=><option key={l} value={l}>{l}</option>)}
+            </select></div>
+          <div style={{borderTop:"1px solid var(--border)",paddingTop:14}}>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--text)",marginBottom:12}}>RECEIVER DETAILS</div>
+            {[["FULL NAME *","receiverName","Full name"],["PHONE NUMBER *","receiverPhone","+260 9XX XXX XXX"],["EMAIL (OPTIONAL)","receiverEmail","email@example.com"]].map(([lbl,key,ph])=>(
+              <div key={key} style={{marginBottom:10}}>
+                <label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:7}}>{lbl}</label>
+                <input className="inp" placeholder={ph} value={form[key]} onChange={e=>set(key,e.target.value)}/>
+              </div>
+            ))}
+          </div>
+        </div>
+        <button className="btn-black" style={{width:"100%",marginTop:10,height:50}} onClick={generate}>Generate Tracking Number →</button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════ PACKAGE HISTORY / MY PACKAGES ══════ */
+function MyPackages({ userId, onTrack, onClose }) {
+  const user = userStore.find(u=>u.id===userId);
+  const saved = user?user.saved:[];
+  const allPkgs = getAllPackages();
+
+  const myPkgs = Object.entries(allPkgs).filter(([id])=>saved.includes(id));
+
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal sci modal-wide" onClick={e=>e.stopPropagation()}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>📜 My Packages</h2>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+        </div>
+        {myPkgs.length===0?(
+          <div style={{textAlign:"center",padding:"40px 0",color:"var(--muted)"}}>
+            <div style={{fontSize:42,marginBottom:14}}>📦</div>
+            <div style={{fontSize:14,fontWeight:600,marginBottom:6}}>No saved packages yet</div>
+            <div style={{fontSize:13}}>Track a package and click ☆ to save it here.</div>
+          </div>
+        ):(
+          <div style={{display:"flex",flexDirection:"column",gap:10}}>
+            {myPkgs.map(([id,p])=>(
+              <div key={id} onClick={()=>{onTrack(id,p);onClose();}}
+                style={{background:"var(--subtle)",borderRadius:12,padding:"14px 18px",cursor:"pointer",transition:"all .2s",border:"1.5px solid transparent"}}
+                onMouseEnter={e=>e.currentTarget.style.borderColor="#1a1a1a"}
+                onMouseLeave={e=>e.currentTarget.style.borderColor="transparent"}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div>
+                    <div style={{fontWeight:700,fontSize:14}}>{p.item}</div>
+                    <div style={{fontSize:12,color:"var(--muted)",marginTop:3}}>{id} · {p.from} → {p.to}</div>
+                  </div>
+                  <StatusBadge status={p.status}/>
+                </div>
+                {p.eta&&<div style={{fontSize:12,color:"var(--muted)",marginTop:6}}>ETA: {p.eta}</div>}
+              </div>
+            ))}
+          </div>
+        )}
+        <button className="btn-black" onClick={onClose} style={{width:"100%",marginTop:20}}>Close</button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════ MODALS: Rename / Report / Share / About ══════ */
+function RenameModal({ user, onClose, onSave }) {
+  const [newName,setNewName]=useState(user.name); const [err,setErr]=useState("");
+  const save=()=>{ if(!newName.trim()){setErr("Name cannot be empty.");return;} onSave(newName.trim()); onClose(); };
+  return (
+    <div className="overlay" onClick={onClose}><div className="modal sci" style={{maxWidth:400}} onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>✏️ Rename Account</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+      </div>
+      {err&&<div style={{background:"#fee2e2",color:"#b91c1c",padding:"10px 14px",borderRadius:8,fontSize:13,marginBottom:16}}>⚠️ {err}</div>}
+      <label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:7}}>YOUR NAME</label>
+      <input className="inp" value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&save()} autoFocus/>
+      <div style={{display:"flex",gap:12,marginTop:24}}><button className="btn-outline" style={{flex:1}} onClick={onClose}>Cancel</button><button className="btn-black" style={{flex:1}} onClick={save}>Save</button></div>
+    </div></div>
+  );
+}
+
+function ReportModal({ onClose }) {
+  const [copied,setCopied]=useState(false);
+  const copy=()=>{ navigator.clipboard.writeText("reports@eris.zm").then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);}); };
+  return (
+    <div className="overlay" onClick={onClose}><div className="modal sci" style={{maxWidth:400}} onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>🚩 Report an Issue</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+      </div>
+      <p style={{color:"var(--muted)",fontSize:13,lineHeight:1.7,marginBottom:24}}>We respond within 24 hours.</p>
+      <div style={{background:"var(--subtle)",borderRadius:14,padding:"18px 20px",marginBottom:20}}>
+        <div style={{fontSize:11,color:"#aaa",letterSpacing:"1.5px",marginBottom:8}}>REPORT EMAIL</div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:800}}>reports@eris.zm</div>
+          <button className="copy-btn" onClick={copy}>{copied?"✓ Copied!":"Copy"}</button>
+        </div>
+      </div>
+      <a href="mailto:reports@eris.zm?subject=Eris Trackers Issue" style={{display:"block",textAlign:"center",background:"#1a1a1a",color:"#fff",padding:"13px",borderRadius:10,fontWeight:600,fontSize:14,textDecoration:"none",marginBottom:10}}>✉️ Open Email App</a>
+      <button className="btn-outline" style={{width:"100%"}} onClick={onClose}>Close</button>
+    </div></div>
+  );
+}
+
+function ShareModal({ onClose }) {
+  const url="https://kasimbo.github.io/eris-trackers"; const [copied,setCopied]=useState(false);
+  const copy=()=>{ navigator.clipboard.writeText(url).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);}); };
+  return (
+    <div className="overlay" onClick={onClose}><div className="modal sci" style={{maxWidth:400}} onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>🔗 Share Eris Trackers</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+      </div>
+      <div style={{background:"var(--subtle)",borderRadius:14,padding:"16px 18px",marginBottom:20}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12}}>
+          <div style={{fontSize:13,fontWeight:600,wordBreak:"break-all"}}>{url}</div>
+          <button className="copy-btn" onClick={copy}>{copied?"✓ Copied!":"Copy"}</button>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:10,marginBottom:10}}>
+        <a href={`https://wa.me/?text=Track packages with Eris Trackers: ${url}`} target="_blank" rel="noreferrer" style={{flex:1,background:"#25D366",color:"#fff",padding:"12px",borderRadius:10,fontWeight:600,fontSize:13,textDecoration:"none",textAlign:"center"}}>💬 WhatsApp</a>
+        <a href={`mailto:?subject=Eris Trackers&body=Track packages: ${url}`} style={{flex:1,background:"#1a1a1a",color:"#fff",padding:"12px",borderRadius:10,fontWeight:600,fontSize:13,textDecoration:"none",textAlign:"center"}}>✉️ Email</a>
+      </div>
+      <button className="btn-outline" style={{width:"100%"}} onClick={onClose}>Close</button>
+    </div></div>
+  );
+}
+
+function AboutModal({ onClose }) {
+  return (
+    <div className="overlay" onClick={onClose}><div className="modal sci" style={{maxWidth:420}} onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>ℹ️ About Eris Trackers</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+      </div>
+      <div style={{background:"#1a1a1a",borderRadius:14,padding:"22px 24px",marginBottom:18,textAlign:"center"}}>
+        <div style={{fontSize:40,marginBottom:10}}>📦</div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:900,color:"#fff"}}>Eris Trackers</div>
+        <div style={{fontSize:12,color:"rgba(255,255,255,.4)",marginTop:6,letterSpacing:"1.5px"}}>VERSION 2.0.0</div>
+      </div>
+      <p style={{color:"var(--muted)",fontSize:13,lineHeight:1.8,marginBottom:14}}>Zambia's trusted package tracking platform. Full visibility of every parcel — warehouse to doorstep.</p>
+      <div style={{background:"var(--subtle)",borderRadius:12,padding:"13px 16px",marginBottom:18,fontSize:13,lineHeight:1.9}}>
+        <div><strong>📞 Phone:</strong> +260 777 073 239</div>
+        <div><strong>✉️ Email:</strong> support@eris.zm</div>
+        <div><strong>🌐 Web:</strong> kasimbo.github.io/eris-trackers</div>
+      </div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+        {["🔐 2FA Login","🔔 Notifications","🌙 Dark Mode","📜 Package History","⭐ Saved Tracking","📸 Proof of Delivery","⏱️ ETA"].map(f=>(
+          <span key={f} style={{fontSize:11,background:"var(--subtle2)",padding:"4px 10px",borderRadius:20,fontWeight:600}}>{f}</span>
+        ))}
+      </div>
+      <p style={{textAlign:"center",fontSize:12,color:"#aaa"}}>© 2026 Eris Trackers. All rights reserved.</p>
+      <button className="btn-black" style={{width:"100%",marginTop:16}} onClick={onClose}>Close</button>
+    </div></div>
+  );
+}
+
+/* ══════ PROFILE DROPDOWN ══════ */
+function ProfileDropdown({ user, onClose, onLogout, onRename, onReport, onShare, onAbout, onMyPackages }) {
+  const items = [
+    {icon:"👤", label:user.name, sub:user.email},
+    {icon:"✏️", label:"Rename",          action:onRename},
+    {icon:"📜", label:"My Packages",     action:onMyPackages},
+    {icon:"ℹ️", label:"About",           action:onAbout},
+    {icon:"🔗", label:"Share",           action:onShare},
+    {icon:"🚩", label:"Report an Issue", action:onReport},
+    {icon:"🚪", label:"Log Out",         action:onLogout},
+    {icon:"🗑️", label:"Delete Account",  red:true, action:onLogout},
+  ];
+  return (
+    <div className="sd" style={{position:"absolute",top:54,right:0,background:"var(--card)",borderRadius:16,boxShadow:"0 8px 40px var(--shadow-lg)",width:240,overflow:"hidden",zIndex:300}}>
+      {items.map((item,i)=>(
+        <div key={i} className="dd-item" style={{color:item.red?"#e53e3e":"var(--text)"}}
+          onClick={()=>{if(item.action)item.action();onClose();}}>
+          <span style={{fontSize:17}}>{item.icon}</span>
+          <div>
+            <div style={{fontWeight:item.sub?700:400,fontSize:item.sub?13:14}}>{item.label}</div>
+            {item.sub&&<div style={{fontSize:11,color:"#bbb",marginTop:1}}>{item.sub}</div>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ══════ MENU DROPDOWN ══════ */
+function MenuDropdown({ onClose, isAdmin, onGoAdmin, dark, onToggleDark, user }) {
+  const [showReview,setShowReview]=useState(false); const [stars,setStars]=useState(5); const [text,setText]=useState(""); const [submitted,setSubmitted]=useState(false);
+  const submitReview=()=>{
+    if(!text.trim()){return;}
+    addReview(user?user.id:0, user?user.name:"Anonymous", stars, text.trim());
+    setSubmitted(true);
+  };
+  if(showReview) return (
+    <div className="overlay" onClick={()=>{setShowReview(false);onClose();}}>
+      <div className="modal sci" onClick={e=>e.stopPropagation()}>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800,marginBottom:6}}>Leave a Review</h2>
+        {submitted?(
+          <div style={{textAlign:"center",padding:"20px 0"}}>
+            <div style={{fontSize:52,marginBottom:14}}>⭐</div>
+            <h3 style={{fontSize:20,fontWeight:700,marginBottom:8}}>Thank you!</h3>
+            <button className="btn-black" style={{marginTop:28}} onClick={()=>{setShowReview(false);onClose();}}>Close</button>
+          </div>
+        ):(
+          <>
+            <div style={{display:"flex",gap:6,marginBottom:20}}>
+              {[1,2,3,4,5].map(r=><button key={r} onClick={()=>setStars(r)} style={{background:"none",border:"none",fontSize:30,cursor:"pointer",opacity:r<=stars?1:0.25,transition:"opacity .15s"}}>⭐</button>)}
+            </div>
+            <textarea className="inp" rows={4} placeholder="Tell us about your experience..." value={text} onChange={e=>setText(e.target.value)} style={{resize:"vertical"}}/>
+            <button className="btn-black" style={{width:"100%",marginTop:16,height:48}} onClick={submitReview}>Submit Review</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+  return (
+    <div className="sd" style={{position:"absolute",top:54,left:0,background:"var(--card)",borderRadius:16,boxShadow:"0 8px 40px var(--shadow-lg)",width:270,overflow:"hidden",zIndex:300}}>
+      <div style={{padding:"16px 18px 12px"}}>
+        <div style={{fontSize:10,fontWeight:700,color:"#bbb",letterSpacing:"2px",marginBottom:12}}>CUSTOMER CARE</div>
+        {[["📞","Phone","+260 777 073 239"],["✉️","Email","support@eris.zm"]].map(([icon,lbl,val])=>(
+          <div key={lbl} style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+            <div style={{width:32,height:32,background:"var(--subtle)",borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>{icon}</div>
+            <div><div style={{fontSize:11,color:"var(--muted)"}}>{lbl}</div><div style={{fontSize:13,fontWeight:600}}>{val}</div></div>
+          </div>
+        ))}
+      </div>
+      <div style={{borderTop:"1px solid var(--dd-border)"}}>
+        <div className="dd-item" onClick={()=>setShowReview(true)}><span style={{fontSize:18}}>⭐</span><span style={{fontSize:14,fontWeight:500}}>Leave a Review</span></div>
+        <div className="dd-item" onClick={()=>{onToggleDark();onClose();}}>
+          <span style={{fontSize:18}}>{dark?"☀️":"🌙"}</span>
+          <span style={{fontSize:14,fontWeight:500}}>{dark?"Light Mode":"Dark Mode"}</span>
+        </div>
+        {isAdmin&&(
+          <div className="dd-item" onClick={()=>{onGoAdmin();onClose();}}><span style={{fontSize:18}}>🛡️</span><span style={{fontSize:14,fontWeight:500}}>Admin Panel</span></div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════ ADMIN PANEL ══════════════════ */
+
+function EditTrackingModal({ trackId, pkg, onClose, onSave, notify }) {
+  const [form,setForm]=useState({item:pkg.item,from:pkg.from,to:pkg.to,sender:pkg.sender,status:pkg.status,value:pkg.value||"",eta:pkg.eta||""});
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const save=()=>{
+    const old=packageStore[trackId].status;
+    packageStore[trackId]={...pkg,...form,value:Number(form.value)};
+    if(old!==form.status) {
+      packageStore[trackId].history=[...(pkg.history||[]),{status:form.status,date:new Date().toISOString().split("T")[0],note:`Status updated by admin`}];
+      addAudit("Admin","Status updated",trackId,`${old} → ${form.status}`);
+    }
+    notify("Tracking info updated."); onSave(); onClose();
+  };
+  return (
+    <div className="overlay" onClick={onClose}><div className="modal sci modal-wide" onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+        <div><h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>Edit Tracking</h2><p style={{color:"var(--muted)",fontSize:13,marginTop:2}}>{trackId}</p></div>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        {[["ITEM NAME","item","text"],["VALUE (ZMW)","value","number"],["FROM","from","text"],["TO","to","text"],["SENDER","sender","text"],["ETA DATE","eta","date"]].map(([lbl,k,type])=>(
+          <div key={k}><label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:7}}>{lbl}</label>
+            <input className="inp" type={type} value={form[k]} onChange={e=>set(k,e.target.value)}/></div>
+        ))}
+        <div><label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:7}}>STATUS</label>
+          <select className="inp" value={form.status} onChange={e=>set("status",e.target.value)}>
+            {STATUS_STEPS.map(s=><option key={s.key} value={s.key}>{s.label}</option>)}
+          </select></div>
+      </div>
+      <div style={{display:"flex",gap:12,marginTop:24}}><button className="btn-outline" style={{flex:1}} onClick={onClose}>Cancel</button><button className="btn-black" style={{flex:1}} onClick={save}>Save Changes</button></div>
+    </div></div>
+  );
+}
+
+function AddPackageModal({ onClose, onAdded, notify }) {
+  const [form,setForm]=useState({item:"",value:"",from:"",to:"",sender:"",status:"warehouse",eta:""}); const [err,setErr]=useState("");
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const add=()=>{
+    if(!form.item||!form.from||!form.to||!form.sender){setErr("Please fill all required fields.");return;}
+    const num=genTracking();
+    registerPackage(num,{...form,value:Number(form.value),date:new Date().toISOString().split("T")[0],eta:form.eta||getETA(form.from,form.to),proofUrl:null,history:[{status:form.status,date:new Date().toISOString().split("T")[0],note:"Added by admin"}]});
+    addAudit("Admin","Package added",num,`${form.item}, ${form.from}→${form.to}`);
+    notify("Package added: "+num); onAdded(); onClose();
+  };
+  return (
+    <div className="overlay" onClick={onClose}><div className="modal sci modal-wide" onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:22,fontWeight:800}}>Add New Package</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+      </div>
+      {err&&<div style={{background:"#fee2e2",color:"#b91c1c",padding:"10px 14px",borderRadius:8,fontSize:13,marginBottom:14}}>⚠️ {err}</div>}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+        {[["ITEM *","item","text"],["VALUE (ZMW)","value","number"],["FROM *","from","text"],["TO *","to","text"],["SENDER *","sender","text"],["ETA DATE","eta","date"]].map(([lbl,k,type])=>(
+          <div key={k}><label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:7}}>{lbl}</label>
+            <input className="inp" type={type} value={form[k]} placeholder={lbl.replace(" *","")} onChange={e=>set(k,e.target.value)}/></div>
+        ))}
+        <div><label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:7}}>STATUS</label>
+          <select className="inp" value={form.status} onChange={e=>set("status",e.target.value)}>
+            {STATUS_STEPS.map(s=><option key={s.key} value={s.key}>{s.label}</option>)}
+          </select></div>
+      </div>
+      <div style={{display:"flex",gap:12,marginTop:24}}><button className="btn-outline" style={{flex:1}} onClick={onClose}>Cancel</button><button className="btn-black" style={{flex:1}} onClick={add}>Add Package →</button></div>
+    </div></div>
+  );
+}
+
+/* ── Admin Tracking ── */
+function AdminTracking({ notify }) {
+  const [packages,setPackages]=useState(()=>({...getAllPackages()}));
+  const [search,setSearch]=useState(""); const [filterStatus,setFilterStatus]=useState("all");
+  const [editId,setEditId]=useState(null); const [showAdd,setShowAdd]=useState(false);
+  const [selected,setSelected]=useState(new Set()); const [bulkStatus,setBulkStatus]=useState("transit");
+
+  const refresh=()=>setPackages({...getAllPackages()});
+
+  const filtered=Object.entries(packages).filter(([id,p])=>{
+    const q=search.toLowerCase();
+    const matchQ=!q||id.toLowerCase().includes(q)||p.item.toLowerCase().includes(q)||p.sender.toLowerCase().includes(q)||p.to.toLowerCase().includes(q);
+    const matchS=filterStatus==="all"||p.status===filterStatus;
+    return matchQ&&matchS;
+  });
+
+  const del=id=>{ delete packageStore[id]; addAudit("Admin","Package deleted",id,""); refresh(); notify("Deleted.","err"); };
+
+  const toggleSelect=id=>setSelected(s=>{ const n=new Set(s); n.has(id)?n.delete(id):n.add(id); return n; });
+  const selectAll=()=>setSelected(new Set(filtered.map(([id])=>id)));
+  const clearSel=()=>setSelected(new Set());
+
+  const bulkUpdate=()=>{
+    if(selected.size===0) return;
+    selected.forEach(id=>{
+      if(packageStore[id]){
+        const old=packageStore[id].status;
+        packageStore[id].status=bulkStatus;
+        packageStore[id].history=[...(packageStore[id].history||[]),{status:bulkStatus,date:new Date().toISOString().split("T")[0],note:"Bulk updated by admin"}];
+        addAudit("Admin","Bulk status update",id,`${old}→${bulkStatus}`);
+      }
+    });
+    clearSel(); refresh(); notify(`${selected.size} packages updated to ${bulkStatus}.`);
+  };
+
+  const exportCSV=()=>{
+    const rows=[["Tracking #","Item","From","To","Sender","Status","Value","Date","ETA"]];
+    Object.entries(packageStore).forEach(([id,p])=>rows.push([id,p.item,p.from,p.to,p.sender,p.status,p.value,p.date,p.eta||""]));
+    const csv=rows.map(r=>r.join(",")).join("\n");
+    const a=document.createElement("a"); a.href="data:text/csv,"+encodeURIComponent(csv); a.download="eris_packages.csv"; a.click();
+    notify("CSV exported.");
+  };
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div><h2 style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:800}}>Tracking Management</h2>
+          <p style={{color:"var(--muted)",fontSize:13,marginTop:4}}>{Object.keys(packages).length} packages total</p></div>
+        <div style={{display:"flex",gap:10}}>
+          <button className="btn-outline" onClick={exportCSV} style={{fontSize:13,padding:"10px 18px"}}>⬇ Export CSV</button>
+          <button className="btn-black" onClick={()=>setShowAdd(true)}>+ Add Package</button>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+        <input className="search-inp" placeholder="Search..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:200}}/>
+        <select className="search-inp" value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={{minWidth:150}}>
+          <option value="all">All Statuses</option>
+          {STATUS_STEPS.map(s=><option key={s.key} value={s.key}>{s.label}</option>)}
+        </select>
+      </div>
+
+      {/* Bulk actions */}
+      {selected.size>0&&(
+        <div style={{background:"#1a1a1a",borderRadius:12,padding:"12px 18px",marginBottom:14,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+          <span style={{color:"#fff",fontSize:13,fontWeight:600}}>{selected.size} selected</span>
+          <select value={bulkStatus} onChange={e=>setBulkStatus(e.target.value)} style={{background:"#333",border:"none",color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:13,fontFamily:"'Inter',sans-serif"}}>
+            {STATUS_STEPS.map(s=><option key={s.key} value={s.key}>{s.label}</option>)}
+          </select>
+          <button className="btn-green" style={{fontSize:12,padding:"7px 16px"}} onClick={bulkUpdate}>Apply to Selected</button>
+          <button onClick={clearSel} style={{background:"none",border:"none",color:"rgba(255,255,255,.5)",cursor:"pointer",fontSize:12}}>Clear selection</button>
+          <button onClick={selectAll} style={{background:"none",border:"none",color:"rgba(255,255,255,.5)",cursor:"pointer",fontSize:12}}>Select all filtered</button>
+        </div>
+      )}
+
+      <div className="card" style={{padding:0,overflow:"hidden"}}>
+        <div className="table-wrap">
+          <table>
+            <thead><tr>
+              <th style={{width:36}}><input type="checkbox" onChange={e=>e.target.checked?selectAll():clearSel()} checked={selected.size===filtered.length&&filtered.length>0}/></th>
+              <th>Tracking #</th><th>Item</th><th>Route</th><th>Status</th><th>ETA</th><th>Value</th><th>👁 Views</th><th>Actions</th>
+            </tr></thead>
+            <tbody>
+              {filtered.length===0&&<tr><td colSpan={8} style={{textAlign:"center",padding:"40px",color:"var(--muted)",fontSize:14}}>No packages found.</td></tr>}
+              {filtered.map(([id,p])=>(
+                <tr key={id} style={{background:selected.has(id)?"var(--subtle)":""}}>
+                  <td><input type="checkbox" checked={selected.has(id)} onChange={()=>toggleSelect(id)}/></td>
+                  <td><span style={{fontFamily:"monospace",fontWeight:700,fontSize:13}}>{id}</span></td>
+                  <td>{p.item}</td>
+                  <td style={{color:"var(--muted)",fontSize:12}}>{p.from} → {p.to}</td>
+                  <td><StatusBadge status={p.status}/></td>
+                  <td style={{fontSize:12,color:"var(--muted)"}}>{p.eta||"—"}</td>
+                  <td style={{fontWeight:600}}>K {Number(p.value||0).toLocaleString()}</td>
+                  <td style={{textAlign:"center"}}>
+                    <span style={{background:"var(--subtle)",borderRadius:20,padding:"3px 10px",fontSize:12,fontWeight:600}}>{trackCounts[id]||0}</span>
+                  </td>
+                  <td><div style={{display:"flex",gap:6}}>
+                    <select value={p.status} onChange={e=>{
+                      const old=p.status; const ns=e.target.value;
+                      packageStore[id].status=ns;
+                      packageStore[id].history=[...(packageStore[id].history||[]),{status:ns,date:new Date().toISOString().split("T")[0],note:"Status updated by admin"}];
+                      addAudit("Admin","Status updated",id,`${old} → ${ns}`);
+                      refresh(); notify(`${id} → ${ns}`);
+                    }} style={{background:"var(--subtle)",border:"1.5px solid var(--border)",borderRadius:7,padding:"5px 8px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",color:"var(--text)"}}>
+                      {STATUS_STEPS.map(s=><option key={s.key} value={s.key}>{s.icon} {s.label}</option>)}
+                    </select>
+                    <button className="btn-green" style={{fontSize:11,padding:"6px 10px"}} onClick={()=>setEditId(id)}>✏️</button>
+                    <button className="btn-red"   style={{fontSize:11,padding:"6px 10px"}} onClick={()=>del(id)}>Del</button>
+                  </div></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {editId&&<EditTrackingModal trackId={editId} pkg={packages[editId]} onClose={()=>setEditId(null)} onSave={refresh} notify={notify}/>}
+      {showAdd&&<AddPackageModal onClose={()=>setShowAdd(false)} onAdded={refresh} notify={notify}/>}
+    </div>
+  );
+}
+
+/* ── Admin Users ── */
+function AdminUsers({ notify }) {
+  const [users,setUsers]=useState(()=>[...getAllUsers()]);
+  const [search,setSearch]=useState(""); const [filterRole,setFilterRole]=useState("all");
+  const [editUser,setEditUser]=useState(null); const [showAdd,setShowAdd]=useState(false);
+  const refresh=()=>setUsers([...getAllUsers()]);
+
+  const filtered=users.filter(u=>{
+    const q=search.toLowerCase();
+    return(!q||u.name.toLowerCase().includes(q)||u.email.toLowerCase().includes(q))&&(filterRole==="all"||u.role===filterRole);
+  });
+
+  const toggle=(id,field,val)=>{ userStore=userStore.map(u=>u.id===id?{...u,[field]:val}:u); addAudit("Admin",field==="status"?`User ${val}`:"Role changed",userStore.find(u=>u.id===id)?.email||id,`${field}=${val}`); refresh(); notify(field==="status"?(val==="active"?"User activated.":"User suspended."):"Role updated."); };
+  const del=id=>{ userStore=userStore.filter(u=>u.id!==id); addAudit("Admin","User deleted",String(id),""); refresh(); notify("User deleted.","err"); };
+
+  const exportCSV=()=>{
+    const rows=[["ID","Name","Email","Role","Status","Joined"]];
+    userStore.forEach(u=>rows.push([u.id,u.name,u.email,u.role,u.status,u.joined]));
+    const csv=rows.map(r=>r.join(",")).join("\n");
+    const a=document.createElement("a"); a.href="data:text/csv,"+encodeURIComponent(csv); a.download="eris_users.csv"; a.click();
+    notify("CSV exported.");
+  };
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div><h2 style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:800}}>User Management</h2>
+          <p style={{color:"var(--muted)",fontSize:13,marginTop:4}}>{users.length} registered users</p></div>
+        <div style={{display:"flex",gap:10}}>
+          <button className="btn-outline" onClick={exportCSV} style={{fontSize:13,padding:"10px 18px"}}>⬇ Export CSV</button>
+          <button className="btn-black" onClick={()=>setShowAdd(true)}>+ Add User</button>
+        </div>
+      </div>
+      <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+        <input className="search-inp" placeholder="Search by name or email..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:200}}/>
+        <select className="search-inp" value={filterRole} onChange={e=>setFilterRole(e.target.value)} style={{minWidth:130}}>
+          <option value="all">All Roles</option><option value="user">User</option><option value="admin">Admin</option>
+        </select>
+      </div>
+      <div className="card" style={{padding:0,overflow:"hidden"}}>
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+            <tbody>
+              {filtered.length===0&&<tr><td colSpan={7} style={{textAlign:"center",padding:"40px",color:"var(--muted)",fontSize:14}}>No users found.</td></tr>}
+              {filtered.map(u=>(
+                <tr key={u.id}>
+                  <td style={{color:"var(--muted)",fontSize:12}}>{u.id}</td>
+                  <td style={{fontWeight:600}}>{u.name}</td>
+                  <td style={{color:"var(--muted)",fontSize:13}}>{u.email}</td>
+                  <td><span className={`badge badge-${u.role}`}>{u.role==="admin"?"🛡️ Admin":"👤 User"}</span></td>
+                  <td><span className={`badge badge-${u.status}`}>{u.status==="active"?"✅ Active":"🚫 Suspended"}</span></td>
+                  <td style={{color:"var(--muted)",fontSize:12}}>{u.joined}</td>
+                  <td><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                    <button style={{background:"var(--subtle)",border:"1.5px solid var(--border)",borderRadius:7,padding:"5px 10px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",color:"var(--text)"}} onClick={()=>setEditUser(u)}>Edit</button>
+                    {u.status==="active"
+                      ?<button className="btn-red" style={{fontSize:11,padding:"5px 10px"}} onClick={()=>toggle(u.id,"status","suspended")}>Suspend</button>
+                      :<button className="btn-green" style={{fontSize:11,padding:"5px 10px"}} onClick={()=>toggle(u.id,"status","active")}>Activate</button>}
+                    <button className="btn-red" style={{fontSize:11,padding:"5px 10px"}} onClick={()=>del(u.id)}>Del</button>
+                  </div></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {editUser&&<EditUserModal user={editUser} onClose={()=>setEditUser(null)} onSave={()=>{refresh();notify("User updated.");}} notify={notify}/>}
+      {showAdd&&<AddUserModal onClose={()=>setShowAdd(false)} onAdded={()=>{refresh();notify("User added.");}} notify={notify}/>}
+    </div>
+  );
+}
+
+function EditUserModal({ user, onClose, onSave }) {
+  const [form,setForm]=useState({name:user.name,email:user.email,role:user.role,status:user.status});
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const save=()=>{ userStore=userStore.map(u=>u.id===user.id?{...u,...form}:u); addAudit("Admin","User edited",user.email,`role=${form.role},status=${form.status}`); onSave(); onClose(); };
+  return (
+    <div className="overlay" onClick={onClose}><div className="modal sci" style={{maxWidth:440}} onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:800}}>Edit User</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        {[["NAME","name","text"],["EMAIL","email","email"]].map(([lbl,k,type])=>(
+          <div key={k}><label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:6}}>{lbl}</label>
+            <input className="inp" type={type} value={form[k]} onChange={e=>set(k,e.target.value)}/></div>
+        ))}
+        <div><label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:6}}>ROLE</label>
+          <select className="inp" value={form.role} onChange={e=>set("role",e.target.value)}><option value="user">User</option><option value="admin">Admin</option></select></div>
+        <div><label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:6}}>STATUS</label>
+          <select className="inp" value={form.status} onChange={e=>set("status",e.target.value)}><option value="active">Active</option><option value="suspended">Suspended</option></select></div>
+      </div>
+      <div style={{display:"flex",gap:12,marginTop:20}}><button className="btn-outline" style={{flex:1}} onClick={onClose}>Cancel</button><button className="btn-black" style={{flex:1}} onClick={save}>Save</button></div>
+    </div></div>
+  );
+}
+
+function AddUserModal({ onClose, onAdded }) {
+  const [form,setForm]=useState({name:"",email:"",password:"",role:"user"}); const [err,setErr]=useState("");
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  const add=()=>{
+    if(!form.name||!form.email||!form.password){setErr("Fill in all fields.");return;}
+    if(userStore.find(u=>u.email===form.email)){setErr("Email already exists.");return;}
+    userStore=[...userStore,{id:userIdSeq++,...form,status:"active",joined:new Date().toISOString().split("T")[0],saved:[]}];
+    addAudit("Admin","User added",form.email,`role=${form.role}`);
+    onAdded(); onClose();
+  };
+  return (
+    <div className="overlay" onClick={onClose}><div className="modal sci" style={{maxWidth:440}} onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:800}}>Add New User</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,cursor:"pointer",color:"#bbb"}}>✕</button>
+      </div>
+      {err&&<div style={{background:"#fee2e2",color:"#b91c1c",padding:"10px 14px",borderRadius:8,fontSize:13,marginBottom:14}}>⚠️ {err}</div>}
+      <div style={{display:"flex",flexDirection:"column",gap:12}}>
+        {[["NAME","name","text"],["EMAIL","email","email"],["PASSWORD","password","password"]].map(([lbl,k,type])=>(
+          <div key={k}><label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:6}}>{lbl}</label>
+            <input className="inp" type={type} value={form[k]} onChange={e=>set(k,e.target.value)}/></div>
+        ))}
+        <div><label style={{fontSize:11,fontWeight:700,color:"var(--muted)",letterSpacing:"1px",display:"block",marginBottom:6}}>ROLE</label>
+          <select className="inp" value={form.role} onChange={e=>set("role",e.target.value)}><option value="user">User</option><option value="admin">Admin</option></select></div>
+      </div>
+      <div style={{display:"flex",gap:12,marginTop:20}}><button className="btn-outline" style={{flex:1}} onClick={onClose}>Cancel</button><button className="btn-black" style={{flex:1}} onClick={add}>Add User →</button></div>
+    </div></div>
+  );
+}
+
+/* ── Admin Reports ── */
+function AdminReports() {
+  const [dateRange,setDateRange]=useState("all");
+  const packages=getAllPackages(); const users=getAllUsers();
+  const pkgList=Object.values(packages);
+
+  const filtered = useMemo(()=>{
+    if(dateRange==="all") return pkgList;
+    const now=new Date(); const cut=new Date();
+    if(dateRange==="week") cut.setDate(now.getDate()-7);
+    else if(dateRange==="month") cut.setDate(now.getDate()-30);
+    return pkgList.filter(p=>p.date&&new Date(p.date)>=cut);
+  },[dateRange,packages]);
+
+  const statusCounts=STATUS_STEPS.map(s=>({...s,count:filtered.filter(p=>p.status===s.key).length}));
+  const totalValue=filtered.reduce((a,p)=>a+(Number(p.value)||0),0);
+  const activeUsers=users.filter(u=>u.status==="active").length;
+  const delivered=filtered.filter(p=>p.status==="delivered"||p.status==="pickup").length;
+
+  const destMap={};
+  filtered.forEach(p=>{ destMap[p.to]=(destMap[p.to]||0)+1; });
+  const topDests=Object.entries(destMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxDest=topDests[0]?.[1]||1;
+  const maxCount=Math.max(...statusCounts.map(s=>s.count),1);
+
+  const totalViews = Object.values(trackCounts).reduce((a,v)=>a+v,0);
+  const statCards=[
+    {label:"Total Packages",value:filtered.length,icon:"📦",sub:"In period"},
+    {label:"Total Value",value:`K ${totalValue.toLocaleString()}`,icon:"💰",sub:"All packages"},
+    {label:"Active Users",value:activeUsers,icon:"👥",sub:`${users.filter(u=>u.role==="admin").length} admin(s)`},
+    {label:"Completed",value:delivered,icon:"✅",sub:"Delivered + Pickup"},
+    {label:"Package Views",value:totalViews,icon:"👁",sub:"Total track lookups"},
+    {label:"Reviews",value:reviewStore.length,icon:"⭐",sub:`${reviewStore.filter(r=>r.status==="pending").length} pending`},
+  ];
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div><h2 style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:800}}>Reports & Analytics</h2>
+          <p style={{color:"var(--muted)",fontSize:13,marginTop:4}}>Platform activity overview</p></div>
+        <div style={{display:"flex",gap:8}}>
+          {[["all","All Time"],["month","This Month"],["week","This Week"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setDateRange(v)}
+              style={{padding:"8px 14px",borderRadius:8,border:"1.5px solid var(--border)",background:dateRange===v?"#1a1a1a":"var(--card)",color:dateRange===v?"#fff":"var(--text)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:14,marginBottom:24}}>
+        {statCards.map(c=>(
+          <div key={c.label} className="stat-card">
+            <div style={{fontSize:26,marginBottom:8}}>{c.icon}</div>
+            <div style={{fontSize:26,fontWeight:800,fontFamily:"'Playfair Display',serif"}}>{c.value}</div>
+            <div style={{fontSize:13,fontWeight:600,marginTop:4}}>{c.label}</div>
+            <div style={{fontSize:11,color:"var(--muted)",marginTop:2}}>{c.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:18,marginBottom:24}}>
+        <div className="card">
+          <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:800,marginBottom:18}}>Packages by Status</h3>
+          <div style={{display:"flex",alignItems:"flex-end",gap:10,height:130,paddingBottom:8}}>
+            {statusCounts.map(s=>(
+              <div key={s.key} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:4}}>
+                <div style={{fontSize:11,fontWeight:700}}>{s.count}</div>
+                <div style={{width:"100%",background:"#1a1a1a",borderRadius:"4px 4px 0 0",height:Math.max(6,s.count/maxCount*100)+"px",transition:"height .6s ease"}}/>
+                <div style={{fontSize:10,color:"var(--muted)",textAlign:"center"}}>{s.icon}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="card">
+          <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:800,marginBottom:18}}>Top Destinations</h3>
+          {topDests.length===0&&<p style={{color:"var(--muted)",fontSize:13}}>No data yet.</p>}
+          {topDests.map(([city,count])=>(
+            <div key={city} style={{marginBottom:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                <span style={{fontSize:13,fontWeight:600}}>{city}</span>
+                <span style={{fontSize:12,color:"var(--muted)"}}>{count}</span>
+              </div>
+              <div style={{height:5,background:"var(--subtle)",borderRadius:3,overflow:"hidden"}}>
+                <div style={{height:"100%",background:"#1a1a1a",borderRadius:3,width:(count/maxDest*100)+"%",transition:"width .6s ease"}}/>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Audit Log */}
+      <div className="card" style={{marginBottom:24}}>
+        <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:800,marginBottom:18}}>🔥 Most Tracked Packages</h3>
+        {Object.entries(trackCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([id,count])=>{
+          const pkg=packageStore[id];
+          const maxV=Math.max(...Object.values(trackCounts),1);
+          return (
+            <div key={id} style={{marginBottom:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",marginBottom:4,alignItems:"center"}}>
+                <div>
+                  <span style={{fontFamily:"monospace",fontWeight:700,fontSize:13}}>{id}</span>
+                  {pkg&&<span style={{fontSize:12,color:"var(--muted)",marginLeft:8}}>{pkg.item} · {pkg.from}→{pkg.to}</span>}
+                </div>
+                <span style={{fontSize:12,fontWeight:700,background:"var(--subtle)",padding:"2px 10px",borderRadius:20}}>{count} views</span>
+              </div>
+              <div style={{height:6,background:"var(--subtle)",borderRadius:3,overflow:"hidden"}}>
+                <div style={{height:"100%",background:"#1a1a1a",borderRadius:3,width:(count/maxV*100)+"%",transition:"width .6s ease"}}/>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Audit Log */}
+      <div className="card" style={{padding:0,overflow:"hidden"}}>
+        <div style={{padding:"20px 24px 14px",borderBottom:"1px solid var(--dd-border)",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:800}}>🔍 Audit Log</h3>
+          <span style={{fontSize:12,color:"var(--muted)"}}>{auditLog.length} entries</span>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Admin</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
+            <tbody>
+              {auditLog.slice(0,20).map(a=>(
+                <tr key={a.id}>
+                  <td style={{fontSize:12,color:"var(--muted)",whiteSpace:"nowrap"}}>{a.date}</td>
+                  <td style={{fontWeight:600,fontSize:13}}>{a.admin}</td>
+                  <td style={{fontSize:13}}>{a.action}</td>
+                  <td style={{fontFamily:"monospace",fontSize:12}}>{a.target}</td>
+                  <td style={{fontSize:12,color:"var(--muted)"}}>{a.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Admin Reviews ── */
+function AdminReviews({ notify }) {
+  const [reviews,setReviews]=useState(()=>[...reviewStore]);
+  const [filter,setFilter]=useState("all");
+  const refresh=()=>setReviews([...reviewStore]);
+
+  const setStatus=(id,status)=>{
+    reviewStore=reviewStore.map(r=>r.id===id?{...r,status}:r);
+    addAudit("Admin","Review "+status,"Review #"+id,"");
+    refresh();
+    notify("Review "+status+".");
+  };
+  const del=(id)=>{
+    reviewStore=reviewStore.filter(r=>r.id!==id);
+    refresh();
+    notify("Review deleted.","err");
+  };
+
+  const filtered=filter==="all"?reviews:reviews.filter(r=>r.status===filter);
+  const pending=reviews.filter(r=>r.status==="pending").length;
+  const avg=(reviews.filter(r=>r.status==="published").reduce((a,r)=>a+r.stars,0)/Math.max(1,reviews.filter(r=>r.status==="published").length)).toFixed(1);
+
+  return (
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+        <div>
+          <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:800}}>Reviews</h2>
+          <p style={{color:"var(--muted)",fontSize:13,marginTop:4}}>{reviews.length} total · Avg ⭐ {avg} · {pending} pending moderation</p>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          {[["all","All"],["pending","Pending"],["published","Published"],["rejected","Rejected"]].map(([v,l])=>(
+            <button key={v} onClick={()=>setFilter(v)}
+              style={{padding:"8px 14px",borderRadius:8,border:"1.5px solid var(--border)",background:filter===v?"#1a1a1a":"var(--card)",color:filter===v?"#fff":"var(--text)",fontSize:12,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif"}}>
+              {l}{v==="pending"&&pending>0?` (${pending})`:""}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Star distribution */}
+      <div className="card" style={{marginBottom:20,display:"flex",gap:24,alignItems:"center",flexWrap:"wrap"}}>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontFamily:"'Playfair Display',serif",fontSize:48,fontWeight:900,lineHeight:1}}>{avg}</div>
+          <div style={{fontSize:20,marginTop:4}}>{"⭐".repeat(Math.round(Number(avg)))}</div>
+          <div style={{fontSize:12,color:"var(--muted)",marginTop:4}}>{reviews.filter(r=>r.status==="published").length} published reviews</div>
+        </div>
+        <div style={{flex:1,minWidth:200}}>
+          {[5,4,3,2,1].map(star=>{
+            const count=reviews.filter(r=>r.stars===star&&r.status==="published").length;
+            const total=Math.max(1,reviews.filter(r=>r.status==="published").length);
+            return (
+              <div key={star} style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                <span style={{fontSize:12,fontWeight:600,width:8}}>{star}</span>
+                <span style={{fontSize:12}}>⭐</span>
+                <div style={{flex:1,height:8,background:"var(--subtle)",borderRadius:4,overflow:"hidden"}}>
+                  <div style={{height:"100%",background:"#1a1a1a",borderRadius:4,width:(count/total*100)+"%",transition:"width .5s"}}/>
+                </div>
+                <span style={{fontSize:11,color:"var(--muted)",width:16}}>{count}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{display:"flex",flexDirection:"column",gap:14}}>
+        {filtered.length===0&&<div style={{textAlign:"center",padding:"40px",color:"var(--muted)",fontSize:14,background:"var(--card)",borderRadius:16}}>No reviews found.</div>}
+        {filtered.map(r=>(
+          <div key={r.id} className="card" style={{padding:"18px 22px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+              <div style={{display:"flex",alignItems:"center",gap:10}}>
+                <div style={{width:36,height:36,borderRadius:"50%",background:"#1a1a1a",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:15}}>{r.userName[0]}</div>
+                <div>
+                  <div style={{fontWeight:700,fontSize:14}}>{r.userName}</div>
+                  <div style={{fontSize:11,color:"var(--muted)"}}>{r.date}</div>
+                </div>
+              </div>
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:14}}>{"⭐".repeat(r.stars)}</span>
+                <span style={{fontSize:10,fontWeight:700,padding:"3px 9px",borderRadius:20,
+                  background:r.status==="published"?"#f0fdf4":r.status==="pending"?"#fefce8":"#fee2e2",
+                  color:r.status==="published"?"#276749":r.status==="pending"?"#92400e":"#b91c1c"}}>
+                  {r.status.toUpperCase()}
+                </span>
+              </div>
+            </div>
+            <p style={{fontSize:14,color:"var(--text)",lineHeight:1.6,marginBottom:14}}>{r.text}</p>
+            <div style={{display:"flex",gap:8}}>
+              {r.status!=="published"&&<button className="btn-green" style={{fontSize:11,padding:"6px 14px"}} onClick={()=>setStatus(r.id,"published")}>✓ Publish</button>}
+              {r.status!=="rejected"&&<button className="btn-red" style={{fontSize:11,padding:"6px 14px"}} onClick={()=>setStatus(r.id,"rejected")}>✕ Reject</button>}
+              {r.status==="rejected"&&<button className="btn-green" style={{fontSize:11,padding:"6px 14px"}} onClick={()=>setStatus(r.id,"published")}>↩ Restore</button>}
+              <button onClick={()=>del(r.id)} style={{background:"var(--subtle)",border:"1.5px solid var(--border)",borderRadius:7,padding:"6px 14px",fontSize:11,fontWeight:600,cursor:"pointer",fontFamily:"'Inter',sans-serif",color:"var(--muted)"}}>🗑 Delete</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ══════ ADMIN PANEL ROOT ══════ */
+function AdminPanel({ user, onBackToDashboard, onLogout }) {
+  const [tab,setTab]=useState("reports"); const [notif,setNotif]=useState(null);
+  const notify=(msg,type="ok")=>{setNotif({msg,type});setTimeout(()=>setNotif(null),3200);};
+  const navItems=[
+    {key:"reports",icon:"📊",label:"Reports"},
+    {key:"tracking",icon:"📦",label:"Tracking"},
+    {key:"users",icon:"👥",label:"Users"},
+    {key:"reviews",icon:"⭐",label:"Reviews"},
+    {key:"audit",icon:"🔍",label:"Audit Log"},
+  ];
+
+  return (
+    <div style={{display:"flex",minHeight:"100vh"}}>
+      {notif&&<div className={`notif ${notif.type}`}>{notif.msg}</div>}
+      <div className="admin-sidebar">
+        <div style={{padding:"26px 20px 18px"}}>
+          <Logo dark={true}/>
+          <div style={{marginTop:12,padding:"7px 10px",background:"rgba(255,255,255,.08)",borderRadius:8,fontSize:12,color:"rgba(255,255,255,.5)"}}>🛡️ Admin Panel</div>
+        </div>
+        <div style={{flex:1,padding:"6px 0"}}>
+          {navItems.map(n=>{
+            const pendingCount=n.key==="reviews"?reviewStore.filter(r=>r.status==="pending").length:0;
+            return (
+              <div key={n.key} className={`admin-nav-item ${tab===n.key?"active":""}`} onClick={()=>setTab(n.key)}>
+                <span style={{fontSize:18}}>{n.icon}</span>
+                <span>{n.label}</span>
+                {pendingCount>0&&<span style={{marginLeft:"auto",background:"#e53e3e",color:"#fff",borderRadius:10,padding:"1px 7px",fontSize:10,fontWeight:700}}>{pendingCount}</span>}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{padding:"14px 10px 26px",borderTop:"1px solid rgba(255,255,255,.08)"}}>
+          <div className="admin-nav-item" onClick={onBackToDashboard}><span style={{fontSize:18}}>🏠</span><span>Back to App</span></div>
+          <div className="admin-nav-item" style={{color:"rgba(229,62,62,.7)"}} onClick={onLogout}><span style={{fontSize:18}}>🚪</span><span>Log Out</span></div>
+        </div>
+      </div>
+      <div className="admin-content">
+        <div style={{background:"var(--header)",borderBottom:"1px solid var(--header-border)",padding:"14px 28px",display:"flex",justifyContent:"space-between",alignItems:"center",position:"sticky",top:0,zIndex:100,boxShadow:"0 1px 8px var(--shadow)"}}>
+          <div><div style={{fontSize:11,color:"var(--muted)",letterSpacing:"1.5px",fontWeight:700}}>ADMIN PANEL</div>
+            <div style={{fontWeight:700,fontSize:15,marginTop:2}}>{navItems.find(n=>n.key===tab)?.label}</div></div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{fontSize:12,color:"var(--muted)",background:"var(--subtle)",padding:"5px 12px",borderRadius:20,border:"1.5px solid var(--border)"}}>🔒 Secure Admin Session</div>
+            <div style={{fontSize:13,color:"var(--muted)"}}>Logged in as <strong>{user.name}</strong></div>
+            <div style={{width:34,height:34,borderRadius:"50%",background:"#1a1a1a",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:15}}>
+              {user.name[0].toUpperCase()}
+            </div>
+          </div>
+        </div>
+        <div style={{padding:28}}>
+          {tab==="reports"  &&<AdminReports/>}
+          {tab==="tracking" &&<AdminTracking notify={notify}/>}
+          {tab==="users"    &&<AdminUsers notify={notify}/>}
+          {tab==="reviews"  &&<AdminReviews notify={notify}/>}
+          {tab==="audit"    &&(
+            <div>
+              <h2 style={{fontFamily:"'Playfair Display',serif",fontSize:26,fontWeight:800,marginBottom:20}}>Audit Log</h2>
+              <div className="card" style={{padding:0,overflow:"hidden"}}>
+                <div className="table-wrap">
+                  <table>
+                    <thead><tr><th>Date</th><th>Admin</th><th>Action</th><th>Target</th><th>Detail</th></tr></thead>
+                    <tbody>
+                      {auditLog.map(a=>(
+                        <tr key={a.id}>
+                          <td style={{fontSize:12,color:"var(--muted)",whiteSpace:"nowrap"}}>{a.date}</td>
+                          <td style={{fontWeight:600,fontSize:13}}>{a.admin}</td>
+                          <td style={{fontSize:13}}>{a.action}</td>
+                          <td style={{fontFamily:"monospace",fontSize:12}}>{a.target}</td>
+                          <td style={{fontSize:12,color:"var(--muted)"}}>{a.detail}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════ DASHBOARD ══════ */
+function Dashboard({ user, onLogout, onRenameUser, onGoAdmin }) {
+  const [trackInput,setTrackInput]=useState("");
+  const [trackResult,setTrackResult]=useState(null); const [trackId,setTrackId]=useState("");
+  const [trackErr,setTrackErr]=useState("");
+  const [showProfile,setShowProfile]=useState(false); const [showMenu,setShowMenu]=useState(false);
+  const [showNotifs,setShowNotifs]=useState(false);
+  const [showSender,setShowSender]=useState(false);
+  const [showRename,setShowRename]=useState(false); const [showReport,setShowReport]=useState(false);
+  const [showShare,setShowShare]=useState(false); const [showAbout,setShowAbout]=useState(false);
+  const [showMyPkgs,setShowMyPkgs]=useState(false);
+  const [notif,setNotif]=useState(null);
+  const [dark,setDark]=useState(false);
+  const [savedRefresh,setSavedRefresh]=useState(0);
+
+  const notify=(msg,type="ok")=>{setNotif({msg,type});setTimeout(()=>setNotif(null),3200);};
+  const toggleDark=()=>{ const v=!dark; setDark(v); setDarkMode(v); };
+
+  const unreadCount=getUserNotifs(user.id).filter(n=>!n.read).length;
+
+  const handleTrack=()=>{
+    setTrackErr("");
+    const key=trackInput.trim().toUpperCase();
+    if(!key){setTrackErr("Please enter a tracking number.");return;}
+    const found=lookupPackage(key);
+    if(!found){setTrackErr("No package found. Please check the tracking number.");return;}
+    incrementTrack(key);
+    setTrackId(key);setTrackResult(found);
+  };
+
+  const savedNums=(userStore.find(u=>u.id===user.id)||{}).saved||[];
+
+  const closeAll=()=>{setShowProfile(false);setShowMenu(false);setShowNotifs(false);};
+
+  return (
+    <div style={{minHeight:"100vh",background:"var(--bg)"}} onClick={closeAll}>
+      {notif&&<div className={`notif ${notif.type}`}>{notif.msg}</div>}
+
+      <header style={{background:"var(--header)",borderBottom:"1px solid var(--header-border)",padding:"0 22px",height:66,display:"flex",alignItems:"center",justifyContent:"space-between",position:"sticky",top:0,zIndex:100,boxShadow:"0 1px 12px var(--shadow)"}}>
+        {/* Left: menu */}
+        <div style={{position:"relative"}} onClick={e=>e.stopPropagation()}>
+          <button onClick={()=>{setShowMenu(v=>!v);setShowProfile(false);setShowNotifs(false);}}
+            style={{width:42,height:42,borderRadius:11,background:"var(--subtle)",border:"1.5px solid var(--border)",cursor:"pointer",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center"}}>⋯</button>
+          {showMenu&&<MenuDropdown onClose={()=>setShowMenu(false)} isAdmin={user.role==="admin"} onGoAdmin={onGoAdmin} dark={dark} onToggleDark={toggleDark} user={user}/>}
+        </div>
+
+        <Logo dark={false}/>
+
+        {/* Right: notifs + profile */}
+        <div style={{display:"flex",alignItems:"center",gap:10}} onClick={e=>e.stopPropagation()}>
+          {/* Bell */}
+          <div className="notif-bell" style={{position:"relative"}}>
+            <button onClick={()=>{setShowNotifs(v=>!v);setShowProfile(false);setShowMenu(false);}}
+              style={{width:42,height:42,borderRadius:11,background:"var(--subtle)",border:"1.5px solid var(--border)",cursor:"pointer",fontSize:18,display:"flex",alignItems:"center",justifyContent:"center"}}>
+              🔔
+            </button>
+            {unreadCount>0&&<div className="notif-dot"/>}
+            {showNotifs&&<NotifPanel userId={user.id} onClose={()=>setShowNotifs(false)}/>}
+          </div>
+          {/* Profile */}
+          <div style={{position:"relative"}}>
+            <button onClick={()=>{setShowProfile(v=>!v);setShowMenu(false);setShowNotifs(false);}}
+              style={{width:42,height:42,borderRadius:"50%",background:"#1a1a1a",border:"none",cursor:"pointer",color:"#fff",fontFamily:"'Playfair Display',serif",fontWeight:900,fontSize:18,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:"0 2px 10px rgba(0,0,0,.2)"}}>
+              {user.name[0].toUpperCase()}
+            </button>
+            {showProfile&&(
+              <ProfileDropdown user={user} onClose={()=>setShowProfile(false)} onLogout={onLogout}
+                onRename={()=>setShowRename(true)} onReport={()=>setShowReport(true)}
+                onShare={()=>setShowShare(true)} onAbout={()=>setShowAbout(true)}
+                onMyPackages={()=>setShowMyPkgs(true)}/>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Hero track bar */}
+      <div style={{background:"#1a1a1a",padding:"60px 24px 84px",textAlign:"center"}}>
+        <h1 style={{fontFamily:"'Playfair Display',serif",fontSize:42,fontWeight:900,color:"#fff",lineHeight:1.1,marginBottom:12}} className="fu">Track Your Package</h1>
+        <p style={{color:"rgba(255,255,255,.45)",fontSize:15,marginBottom:36}}>Enter your tracking number for a real-time status update.</p>
+        <div style={{maxWidth:580,margin:"0 auto"}}>
+          <div style={{display:"flex",gap:10,background:"rgba(255,255,255,.09)",borderRadius:16,padding:9,border:"1px solid rgba(255,255,255,.08)"}}>
+            <input value={trackInput} onChange={e=>{setTrackInput(e.target.value);setTrackErr("");}} onKeyDown={e=>e.key==="Enter"&&handleTrack()}
+              placeholder="Enter tracking number  e.g. ET48291037"
+              style={{flex:1,background:"transparent",border:"none",color:"#fff",fontFamily:"'Inter',sans-serif",fontSize:15,outline:"none",padding:"9px 14px"}}/>
+            <button onClick={handleTrack} style={{background:"#fff",color:"#1a1a1a",border:"none",borderRadius:10,padding:"10px 24px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"'Inter',sans-serif",whiteSpace:"nowrap"}}>Track →</button>
+          </div>
+          {trackErr&&<div style={{color:"#fca5a5",fontSize:13,marginTop:10}}>⚠️ {trackErr}</div>}
+
+          {/* Saved chips */}
+          {savedNums.length>0&&(
+            <div style={{marginTop:14,display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
+              <span style={{fontSize:12,color:"rgba(255,255,255,.4)",alignSelf:"center"}}>Saved:</span>
+              {savedNums.map(id=>(
+                <span key={id} className="saved-chip" onClick={()=>{setTrackInput(id);const f=lookupPackage(id);if(f){setTrackId(id);setTrackResult(f);}}}
+                  style={{background:"rgba(255,255,255,.1)",border:"1px solid rgba(255,255,255,.15)",color:"rgba(255,255,255,.8)"}}>
+                  ⭐ {id}
+                </span>
+              ))}
+            </div>
+          )}
+          <p style={{color:"rgba(255,255,255,.2)",fontSize:12,marginTop:12}}></p>
+        </div>
+      </div>
+
+      <div style={{maxWidth:760,margin:"-40px auto 0",padding:"0 18px 72px"}}>
+        {/* Admin banner */}
+        {user.role==="admin"&&(
+          <div className="card" style={{marginBottom:16,background:"#1a1a1a",cursor:"pointer"}} onClick={onGoAdmin}>
+            <div style={{display:"flex",alignItems:"center",gap:14}}>
+              <div style={{fontSize:32}}>🛡️</div>
+              <div><div style={{fontFamily:"'Playfair Display',serif",fontSize:17,fontWeight:800,color:"#fff"}}>Admin Panel</div>
+                <div style={{fontSize:13,color:"rgba(255,255,255,.5)",marginTop:2}}>Manage packages, users, map & reports</div></div>
+              <div style={{marginLeft:"auto",color:"rgba(255,255,255,.4)",fontSize:20}}>→</div>
+            </div>
+          </div>
+        )}
+
+        {/* Action card */}
+        <div style={{marginBottom:16}}>
+          <div className="card action-card" onClick={()=>setShowSender(true)}>
+            <div style={{display:"flex",alignItems:"center",gap:16}}>
+              <div style={{fontSize:38}}>📤</div>
+              <div>
+                <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:20,fontWeight:800,marginBottom:6}}>Send a Package</h3>
+                <p style={{color:"var(--muted)",fontSize:13,lineHeight:1.7}}>Register a package to send and get a unique tracking number to share with the receiver.</p>
+              </div>
+              <div style={{marginLeft:"auto",fontWeight:700,fontSize:18,flexShrink:0}}>→</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Delivery stages */}
+        <div className="card">
+          <h3 style={{fontFamily:"'Playfair Display',serif",fontSize:18,fontWeight:800,marginBottom:16}}>Delivery Stages</h3>
+          <div style={{display:"flex",flexDirection:"column",gap:8}}>
+            {STATUS_STEPS.map((s,i)=>(
+              <div key={s.key} style={{display:"flex",alignItems:"center",gap:12,padding:"11px 14px",background:"var(--subtle)",borderRadius:11}}>
+                <span style={{fontSize:20}}>{s.icon}</span>
+                <div style={{flex:1}}><div style={{fontWeight:600,fontSize:14}}>{s.label}</div><div style={{fontSize:12,color:"var(--muted)",marginTop:1}}>{s.desc}</div></div>
+                <div style={{width:24,height:24,borderRadius:"50%",background:"#1a1a1a",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:700,flexShrink:0}}>{i+1}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {trackResult  &&<TrackingResult data={trackResult} id={trackId} onClose={()=>setTrackResult(null)} userId={user.id} onSave={()=>setSavedRefresh(v=>v+1)}/>}
+      {showSender   &&<SenderModal onClose={()=>setShowSender(false)} onRegistered={()=>{notify("Package registered & saved to your account!");setSavedRefresh(v=>v+1);}} userId={user.id}/>}
+      {showRename   &&<RenameModal user={user} onClose={()=>setShowRename(false)} onSave={n=>{onRenameUser(n);notify("Name updated to "+n);}}/>}
+      {showReport   &&<ReportModal onClose={()=>setShowReport(false)}/>}
+      {showShare    &&<ShareModal  onClose={()=>setShowShare(false)}/>}
+      {showAbout    &&<AboutModal  onClose={()=>setShowAbout(false)}/>}
+      {showMyPkgs   &&<MyPackages userId={user.id} onTrack={(id,data)=>{setTrackId(id);setTrackResult(data);}} onClose={()=>setShowMyPkgs(false)}/>}
+    </div>
+  );
+}
+
+/* ══════ ROOT ══════ */
+function App() {
+  const [user,setUser]=useState(null); const [view,setView]=useState("dashboard");
+  const handleRename=n=>setUser(u=>({...u,name:n}));
+  const handleLogout=()=>{setUser(null);setView("dashboard");};
+  if(!user) return <LoginScreen onLogin={u=>{setUser(u);setView("dashboard");}}/>;
+  if(view==="admin"&&user.role==="admin") return <AdminPanel user={user} onBackToDashboard={()=>setView("dashboard")} onLogout={handleLogout}/>;
+  return <Dashboard user={user} onLogout={handleLogout} onRenameUser={handleRename} onGoAdmin={()=>setView("admin")}/>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
